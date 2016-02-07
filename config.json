@@ -1,0 +1,6 @@
+{
+  "max_tries": 4,
+  "min_letters": 4,
+  "max_letters": 7,
+  "characters": "0123456789abcdefghijklmnopqrstuvwxyz"
+}

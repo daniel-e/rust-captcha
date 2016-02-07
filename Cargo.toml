@@ -1,0 +1,13 @@
+[package]
+name = "rust-captcha"
+version = "0.0.1"
+authors = ["daniele <git.daniele@gmail.com>"]
+
+[dependencies]
+rustful = "0.6"
+log = "*"
+env_logger = "*"
+getopts = "*"
+rustc-serialize = "*"
+rand = "*"
+redis = "0.5.2"
