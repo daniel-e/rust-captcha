@@ -81,21 +81,18 @@ POST /session/:session
 200 OK
 
 {
-  status: "processed" | "rejected"
+  checked: true | false
   solved:
   tries: 1
   max_tries: 3
 }
 
-- if tries >= max_tries:
-  - status = "rejected"
-- else if solved
-  - status = "rejected"
+- if tries >= max_tries || solved:
+  - status = "not_checked"
 - else
+  - status = "checked"
   - tries++
   - if solution is correct
-    - status = "processed"
     - solved = true
   - else
-    - status = "processed"
     - solved = false

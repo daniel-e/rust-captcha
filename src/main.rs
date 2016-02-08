@@ -21,8 +21,9 @@ mod captcha;
 
 use arguments::parse_arguments;
 use executor::{create_and_persist_captcha, get_captcha, ExecutorError};
+//use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_solution};
 use config::{parse_config, Config};
-use captcha::CaptchaToJson;
+use captcha::{CaptchaToJson, CaptchaSolution};
 
 fn bad_request() -> (String, StatusCode) {
     (String::new(), StatusCode::BadRequest)
@@ -66,12 +67,40 @@ fn do_get(context: Context, config: &Config) -> (String, StatusCode) {
                 Ok(c)  => (c.to_json(), StatusCode::Ok)
             }
         },
-        None => {
-            // This cannot happen.
-            info!(target: "main::do_get", "Got request without an id.");
-            bad_request()
-        }
+        None => bad_request() // This cannot happen
     }
+}
+
+fn do_solution(mut context: Context, mut response: Response, config: &Config) {
+
+    let (body, status) = match context.variables.get("id") {
+        Some(id) => {
+            match context.body.decode_json_body::<CaptchaSolution>() {
+                Ok(cs) => {
+                    //match check_solution(id, cs, conf) {
+                    // TODO    
+                    //}
+                    println!("sol: {}", cs.solution);
+                    bad_request()
+
+                    //match check_solution(id, cs, conf) {
+                    //    Ok()
+                    //}
+                },
+                Err(_) => {
+                    println!("failed");
+                    bad_request()
+                }
+            }
+        },
+        None => bad_request() // This cannot happen
+    };
+
+    response
+        .headers_mut()
+        .set(ContentType(content_type!(Application / Json; Charset = Utf8)));
+    response.set_status(status);
+    response.send(body);
 }
 
 fn do_request(context: Context, mut response: Response, config: &Config) {
@@ -122,6 +151,7 @@ fn main() {
       TreeRouter::new() => {
         "/session" => Post: Handler(do_request, conf.clone()),
         "/session/:id" => Get: Handler(do_request, conf.clone()),
+        "/session/:id" => Post: Handler(do_solution, conf.clone()),
       }
     },
     ..Server::default() // for the rest use default values

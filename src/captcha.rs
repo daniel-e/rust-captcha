@@ -54,3 +54,25 @@ impl CaptchaToJson for Captcha {
         json::encode(self).unwrap() // TODO
     }
 }
+
+// ----------------------------------------------------------------------------
+
+#[derive(RustcDecodable, RustcEncodable)]
+pub struct CaptchaSolution {
+    pub solution: String,
+}
+
+impl CaptchaSolution {
+    pub fn from_json(s: String) -> Option<CaptchaSolution> {
+        match json::decode(&s) {
+            Ok(c)  => Some(c),
+            Err(_) => None
+        }
+    }
+}
+
+impl CaptchaToJson for CaptchaSolution {
+    fn to_json(&self) -> String {
+        json::encode(self).unwrap() // TODO
+    }
+}
