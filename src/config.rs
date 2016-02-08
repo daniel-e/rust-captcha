@@ -9,6 +9,9 @@ pub struct Config {
   pub min_letters: u32,
   pub max_letters: u32,
   pub characters: String,
+  pub redis_ip: String,
+  pub expire: usize,
+  pub port: u16,
 }
 
 pub fn parse_config(fname: &String) -> Result<Config, String> {
@@ -16,7 +19,7 @@ pub fn parse_config(fname: &String) -> Result<Config, String> {
   let mut f = match File::open(fname) {
     Ok(f) => { f },
     Err(e) => {
-      return Err(format!("Could not open file {} {}", fname, e.description())) 
+      return Err(format!("Could not open file {} {}", fname, e.description()))
     }
   };
 

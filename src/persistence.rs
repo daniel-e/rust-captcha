@@ -1,36 +1,34 @@
-use captcha::{Captcha, CaptchaToJson};
-
 use super::redis::{Client, Commands, Connection, RedisResult};
 
+use captcha::{Captcha, CaptchaToJson};
+use super::config::Config;
+
 pub enum PersistenceError {
-    ConnectionFailed, // 503 ServiceUnavailable
-    KeyNotFound,      // 404 NotFound
-    JsonError         // 500 InternalServerError
+    ConnectionFailed,
+    KeyNotFound,
+    JsonError,
 }
 
 // ----------------------------------------------------------------------------
 
-pub fn get(session: String) -> Result<Captcha, PersistenceError> {
+pub fn get(session: String, conf: &Config) -> Result<Captcha, PersistenceError> {
 
-    match get_connection() {
-        Ok(con) => {
-            get_key(con, session)
-        },
-        Err(_) => {
-            info!(target: "persistence::get()", "Could not retrieve session [{}]", session.clone());
-            Err(PersistenceError::ConnectionFailed)
+    match get_connection(&conf.redis_ip) {
+        Ok(con) => get_key(con, session),
+        Err(e)  => {
+            info!(target: "persistence::get()", "Could not retrieve session [{}]", session);
+            Err(e)
         }
     }
 }
 
-pub fn persist(c: &Captcha) -> bool {
+pub fn persist(c: &Captcha, conf: &Config) -> bool {
 
-    let seconds = 120;  // TODO config
     let k = c.session.clone();
 
-    match get_connection() {
+    match get_connection(&conf.redis_ip) {
         Ok(con) => {
-            set_key(con, k, c.to_json(), seconds)
+            set_key(con, k, c.to_json(), conf.expire)
         },
         _ => {
             info!(target: "persistence::persist()", "Could not persist [{}]", k);
@@ -89,13 +87,11 @@ fn connect(client: Client) -> Result<Connection, PersistenceError> {
     }
 }
 
-fn get_connection() -> Result<Connection, PersistenceError> {
+fn get_connection(ip: &String) -> Result<Connection, PersistenceError> {
 
-    // TODO configuration
-    match Client::open("redis://127.0.0.1/") {
-        Ok(client) => {
-            connect(client)
-        },
+    let addr = "redis://".to_string() + ip + "/";
+    match Client::open(&addr[..]) {
+        Ok(client) => connect(client),
         Err(_) => {
             error!(target: "persistence::get_connection()", "Could not connect to Redis.");
             Err(PersistenceError::ConnectionFailed)

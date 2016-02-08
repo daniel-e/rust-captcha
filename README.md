@@ -1,14 +1,16 @@
 # TODO
 
+- [x] implement GET request to retrieve status of a CAPTCHA
 - [x] Makefile to start redis instance on starting the service
-- [ ] configure TTL for entries in redis in configuration file
-- [ ] configure redis endpoint in configuration file
+- [x] configure redis endpoint in configuration file
+- [x] what is the response if the CAPTCHA does not exist for a GET?
+- [x] configure redis port
+- [x] configure TTL for entries in redis in configuration file
+- [x] configure port for server in configuration file
 - [ ] filter log messages
-- [ ] what is the response if the CAPTCHA does not exist for a GET?
-- [ ] configure port for server in configuration file
 - [ ] generate the CAPTCHA
-- [ ] implement GET request to retrieve status of a CAPTCHA
 - [ ] implement POST request to solve a CAPTCHA
+- [ ] maybe the persistence layer should not know anything about a CAPTCHA
 
 # Examples
 
@@ -42,27 +44,27 @@ There are currently three possible reasons for the service to return with a stat
 * the service cannot connect to Redis
 * the service was unable to store a CAPTCHA in Redis
 
+## Get status of a CAPTCHA
 
+```
+curl -i -X GET localhost:8080/session/WHilumBnJGMjOAReDA4u
+```
 
+**Response on success:**
 
---------------------------------------------------------------------------------
+```
+HTTP/1.1 200 OK
+...
 
-## Get a created CAPTCHA
+{"solved":false,"tries":0,"max_tries":4}
+```
 
-GET /session/:session
+**Responses on failure:**
 
-->
-
-200 OK
-Content-type: text/json
-
-{
-  imagedata: "..."
-  tries: 0
-  max_tries: 3
-  status: "processed" | "rejected"
-  solved:
-}
+* `400 Bad Request`: Validation error.
+* `404 Not Found`: CAPTCHA not found.
+* `500 Internal Server Error`: Data from database could not be decoded.
+* `503 Service Unavailable`: Connection to Redis failed.
 
 --------------------------------------------------------------------------------
 

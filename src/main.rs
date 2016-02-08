@@ -61,9 +61,9 @@ fn do_get(context: Context, config: &Config) -> (String, StatusCode) {
 
     match context.variables.get("id") {
         Some(id) => {
-            match get_captcha(id.to_string()) {
-                Ok(c)  => (c.to_json(), StatusCode::Ok),
-                Err(e) => map_error(e)
+            match get_captcha(id.to_string(), config) {
+                Err(e) => map_error(e),
+                Ok(c)  => (c.to_json(), StatusCode::Ok)
             }
         },
         None => {
@@ -114,10 +114,10 @@ fn main() {
     }
   };
 
-  info!(target: "main", "Starting server ...");
+  info!(target: "main", "Starting server on port {} ...", conf.port);
 
   let srv = Server {
-    host: 8080.into(),
+    host: conf.port.into(),
     handlers: insert_routes! {
       TreeRouter::new() => {
         "/session" => Post: Handler(do_request, conf.clone()),

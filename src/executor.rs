@@ -10,10 +10,10 @@ use super::captcha::{Captcha, CaptchaCreation, CaptchaToJson};
 static SESSION_CHARS: &'static str = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 pub enum ExecutorError {
-    ConnectionFailed,  // 503 ServiceUnavailable
-    NotFound,          // 404 NotFound
-    JsonError,         // 500 InternalServerError
-    ValidationError,   // 400 BadRequest
+    ConnectionFailed,
+    NotFound,
+    JsonError,
+    ValidationError,
 }
 
 pub struct CaptchaResult {
@@ -21,12 +21,12 @@ pub struct CaptchaResult {
     pub session: String
 }
 
+// ----------------------------------------------------------------------------
 
-
-pub fn get_captcha(session: String) -> Result<CaptchaCreation, ExecutorError> {
+pub fn get_captcha(session: String, conf: &Config) -> Result<CaptchaCreation, ExecutorError> {
 
     match validate_session(&session) {
-        true => match get(session) {
+        true => match get(session, conf) {
             Ok(c)  => Ok(CaptchaCreation::new(c)),
             Err(e) => Err(map_error(e))
         },
@@ -64,12 +64,11 @@ pub fn create_and_persist_captcha(conf: &Config) -> Option<CaptchaResult> {
 
     info!(target: "executor::create_and_persist_captcha()", "Created new CAPTCHA: {}", c.to_json());
 
-    match persist(&c) {
+    match persist(&c, conf) {
         true => {
             let session = c.session.clone();
-            let cc = CaptchaCreation::new(c);
             Some(CaptchaResult {
-                captcha: cc,
+                captcha: CaptchaCreation::new(c),
                 session: session,
             })
         }
