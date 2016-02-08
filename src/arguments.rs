@@ -17,7 +17,7 @@ pub fn parse_arguments() -> Option<Arguments> {
 
   let matches = match opts.parse(&args[1..]) {
     Ok(m) => { m },
-    Err(m) => {
+    Err(_) => {
       print_usage(prog, opts);
       return None
     }

@@ -1,87 +1,97 @@
 extern crate rand;
 
-use super::rustc_serialize::json;
 use self::rand::os::OsRng;
 use self::rand::Rng;
 
 use super::config::Config;
 use super::persistence::persist;
+use super::captcha::{Captcha, CaptchaCreation, CaptchaToJson};
 
-#[derive(RustcDecodable, RustcEncodable)]
-struct JsonCreation {
-  solved: bool,
-  tries: u32,
-  max_tries: u32,
+pub enum CaptchaError {
+    DatabaseUnavailable,
+    CaptchaNotFound,
 }
 
-pub enum JsonType {
-  All,
-  Creation
+pub struct CaptchaResult {
+    pub captcha: CaptchaCreation,
+    pub session: String
 }
 
-#[derive(RustcDecodable, RustcEncodable)]
-pub struct Captcha {
-  pub solution: String,
-  pub tries: u32,
-  pub max_tries: u32,
-  pub session: String,
-  pub solved: bool,
+/*
+pub fn get_captcha(conf: &Config) -> Result<CaptchaCreation, CaptchaError> {
+
+
 }
+*/
 
-impl Captcha {
+/// Creates a new CAPTCHA and persists it in a database.
+pub fn create_and_persist_captcha(conf: &Config) -> Option<CaptchaResult> {
 
-  pub fn to_json(&self, jt: JsonType) -> String {
-    match jt {
-      JsonType::Creation => {
-        let js = JsonCreation {
-          solved: self.solved,
-          tries: self.tries,
-          max_tries: self.max_tries
-        };
-        json::encode(&js).unwrap() // TODO
-      },
-      JsonType::All => {
-        json::encode(&self).unwrap() // TODO
-      }
+    // TODO: how expensive is it to create a new PRNG for every request?
+    let mut rng = match OsRng::new() {
+        Err(_) => {
+            error!(target: "executor::create_and_persist_captcha()", "Could not create RNG.");
+            return None;
+        },
+        Ok(r) => { r }
+    };
+
+    let session = new_session(&mut rng);
+    let solution = new_solution(&mut rng, conf.min_letters, conf.max_letters, &conf.characters);
+
+    // TODO create the image
+
+    let c = Captcha {
+        tries: 0,
+        max_tries: conf.max_tries,
+        solved: false,
+        session: session,
+        solution: solution,
+    };
+
+    info!(target: "executor::create_and_persist_captcha()", "Created new CAPTCHA: {}", c.to_json());
+
+    match persist(&c) {
+        true => {
+            let session = c.session.clone();
+            let cc = CaptchaCreation::new(c);
+            Some(CaptchaResult {
+                captcha: cc,
+                session: session,
+            })
+        }
+        false => None
     }
-  }
 }
 
-pub fn new_captcha(conf: &Config) -> Option<Captcha> {
-  let c = Captcha {
-    tries: 0,
-    max_tries: conf.max_tries,
-    solved: false,
-    session: new_session(),
-    solution: new_solution(conf.min_letters, conf.max_letters, &conf.characters),
-  };
+// ----------------------------------------------------------------------------
 
-  //info!(target: "executor", "Created new CAPTCHA: {}", c.to_json(JsonType::All));
-  println!("Created new CAPTCHA: {}", c.to_json(JsonType::All));
+static SESSION_CHARS: &'static str = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-  if !persist(& c) {
-    return None;
-  }
-  Some(c)
+pub fn validate_session(id: &String) -> bool {
+    id.chars().count() == 20 && id.chars().all(|x| SESSION_CHARS.contains(x))
 }
 
-fn new_session() -> String {
+/// Creates a new random session id.
+fn new_session(rng: &mut OsRng) -> String {
 
-  // TODO: how expensive is it to create a new PRNG for every request?
-  let mut rng = OsRng::new().unwrap(); // TODO
-  let mut s = rng.gen_ascii_chars().take(20).collect::<_>();
-  s
+    let c = SESSION_CHARS.chars().collect::<Vec<_>>();
+    let mut s = String::new();
+    for _ in 0..20 {
+        s.push(*rng.choose(&c).unwrap());
+    }
+    s
 }
 
-fn new_solution(minlen: u32, maxlen: u32, chars: &String) -> String {
+/// Creates a new CAPTCHA text from a set of characters.
+fn new_solution(rng: &mut OsRng, minlen: u32, maxlen: u32, chars: &String) -> String {
 
-  let mut rng = OsRng::new().unwrap(); // TODO
-  let l = rng.next_u32() % (maxlen - minlen + 1) + minlen;
-  let mut s = String::new();
-  let c: Vec<char> = chars.chars().collect::<_>();
+    let l = rng.next_u32() % (maxlen - minlen + 1) + minlen;
+    let c = chars.chars().collect::<Vec<_>>();
 
-  for _ in 0..l {
-    s.push(*rng.choose(&c).unwrap());
-  }
-  s
+    let mut s = String::new();
+    for _ in 0..l {
+        s.push(*rng.choose(&c).unwrap());
+    }
+    s
 }

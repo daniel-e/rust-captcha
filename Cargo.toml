@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["daniele <git.daniele@gmail.com>"]
 
 [dependencies]
-rustful = "0.6"
+rustful = "0.6.1"
 log = "*"
 env_logger = "*"
 getopts = "*"

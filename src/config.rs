@@ -15,7 +15,9 @@ pub fn parse_config(fname: &String) -> Result<Config, String> {
 
   let mut f = match File::open(fname) {
     Ok(f) => { f },
-    Err(e) => { return Err(format!("Could not open file: {}", fname)) }
+    Err(e) => {
+      return Err(format!("Could not open file {} {}", fname, e.description())) 
+    }
   };
 
   let mut data = String::new();
@@ -45,7 +47,7 @@ pub fn parse_config(fname: &String) -> Result<Config, String> {
 
   if decoded.characters.is_empty() {
   return Err(
-    "The value for characters must not be empty.".to_string())  
+    "The value for characters must not be empty.".to_string())
   }
 
   Ok(decoded)

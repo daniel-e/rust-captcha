@@ -10,56 +10,92 @@ extern crate getopts;
 
 use std::error::Error;
 
-use rustful::{Server, Context, Response, TreeRouter, Method};
-use rustful::header::ContentType;
-use redis::Client;
+use rustful::{Server, Context, Response, TreeRouter, Method, StatusCode};
+use rustful::header::{ContentType, Location};
 
 mod arguments;
 mod executor;
 mod config;
 mod persistence;
+mod captcha;
 
-use arguments::{Arguments, parse_arguments};
-use executor::{new_captcha, JsonType};
+use arguments::parse_arguments;
+use executor::{create_and_persist_captcha, validate_session};
 use config::{parse_config, Config};
+use captcha::CaptchaToJson;
 
-//let person = match context.variables.get("name") {
-//  Some(name) => name,
-//  None => "stranger".into()
-//};
+fn bad_request() -> (String, StatusCode) {
+    (String::new(), StatusCode::BadRequest)
+}
 
-fn do_post(context: Context, mut response: Response, config: &Config) {
-  match new_captcha(config) {
-    Some(c) => {
-      let mime_type = content_type!(Application / Json; Charset = Utf8);
-      response.headers_mut().set(ContentType(mime_type));
-      response.send(c.to_json(JsonType::Creation));
-    },
-    _ => { // Error TODO
+/// Returns
+/// - 201 if CAPTCHA has been created and persisted
+/// - 503 if Redis is not available or key could not be stored
+fn do_post(_: Context, response: &mut Response, config: &Config) -> (String, StatusCode) {
+
+    match create_and_persist_captcha(config) {
+        Some(r) => {
+            let c = r.captcha;
+            let s = r.session;
+            let l = Location("/session/".to_string() + &s);
+            response.headers_mut().set(l);
+            (c.to_json(), StatusCode::Created)
+        },
+        _ => (String::new(), StatusCode::ServiceUnavailable)
     }
-  }
 }
 
-fn do_get(context: Context, response: Response, config: &Config) {
-  // TODO
-  response.send("get");
+fn do_get(context: Context, config: &Config) -> (String, StatusCode) {
+
+    match context.variables.get("id") {
+        Some(id) => {
+            let i = id.to_string();
+            if !validate_session(&i) {
+                warn!(target: "main::do_get", "Validation of id failed.");
+                return bad_request();
+            }
+            info!(target: "main::do_get", "Got request for id [{}]", i);
+            (String::new(), StatusCode::Ok)
+            /*
+            match get_captcha(id) {
+                Ok(c)  => (c.to_json(), StatusCode::Ok),
+                Err(e) => {
+                    match e {
+
+                    }
+                }
+            }
+            */
+        },
+        None => {
+            // This cannot happen.
+            info!(target: "main::do_get", "Got request without an id.");
+            bad_request()
+        }
+    }
 }
 
-fn do_request(context: Context, response: Response, config: &Config) {
-  match context.method {
-    Method::Post => do_post(context, response, config),
-    Method::Get  => do_get(context, response, config),
-    _ => ()
-  }
+fn do_request(context: Context, mut response: Response, config: &Config) {
+
+    let (body, status) = match context.method {
+        Method::Post => do_post(context, &mut response, config),
+        Method::Get  => do_get(context, config),
+        _            => bad_request(),
+    };
+
+    response
+        .headers_mut()
+        .set(ContentType(content_type!(Application / Json; Charset = Utf8)));
+    response.set_status(status);
+    response.send(body);
 }
 
 struct Handler(fn(Context, Response, &Config), Config);
 
 impl rustful::Handler for Handler {
-
-  fn handle_request(&self, context: Context, response: Response) {
-    self.0(context, response, &self.1)
-  }
+    fn handle_request(&self, context: Context, response: Response) {
+        self.0(context, response, &self.1)
+    }
 }
 
 fn main() {
@@ -86,7 +122,7 @@ fn main() {
     handlers: insert_routes! {
       TreeRouter::new() => {
         "/session" => Post: Handler(do_request, conf.clone()),
-        "/person/:name" => Get: Handler(do_request, conf.clone()),
+        "/session/:id" => Get: Handler(do_request, conf.clone()),
       }
     },
     ..Server::default() // for the rest use default values
