@@ -40,6 +40,15 @@ pub struct Captcha {
     pub solved: bool,
 }
 
+impl Captcha {
+    pub fn from_json(s: String) -> Option<Captcha> {
+        match json::decode(&s) {
+            Ok(c)  => Some(c),
+            Err(_) => None
+        }
+    }
+}
+
 impl CaptchaToJson for Captcha {
     fn to_json(&self) -> String {
         json::encode(self).unwrap() // TODO

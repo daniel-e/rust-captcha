@@ -4,12 +4,16 @@ use self::rand::os::OsRng;
 use self::rand::Rng;
 
 use super::config::Config;
-use super::persistence::persist;
+use super::persistence::{persist, get, PersistenceError};
 use super::captcha::{Captcha, CaptchaCreation, CaptchaToJson};
 
-pub enum CaptchaError {
-    DatabaseUnavailable,
-    CaptchaNotFound,
+static SESSION_CHARS: &'static str = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+pub enum ExecutorError {
+    ConnectionFailed,  // 503 ServiceUnavailable
+    NotFound,          // 404 NotFound
+    JsonError,         // 500 InternalServerError
+    ValidationError,   // 400 BadRequest
 }
 
 pub struct CaptchaResult {
@@ -17,12 +21,21 @@ pub struct CaptchaResult {
     pub session: String
 }
 
-/*
-pub fn get_captcha(conf: &Config) -> Result<CaptchaCreation, CaptchaError> {
 
 
+pub fn get_captcha(session: String) -> Result<CaptchaCreation, ExecutorError> {
+
+    match validate_session(&session) {
+        true => match get(session) {
+            Ok(c)  => Ok(CaptchaCreation::new(c)),
+            Err(e) => Err(map_error(e))
+        },
+        false => {
+            warn!(target: "executor::get_captcha", "Validation of session failed.");
+            Err(ExecutorError::ValidationError)
+        }
+    }
 }
-*/
 
 /// Creates a new CAPTCHA and persists it in a database.
 pub fn create_and_persist_captcha(conf: &Config) -> Option<CaptchaResult> {
@@ -66,9 +79,15 @@ pub fn create_and_persist_captcha(conf: &Config) -> Option<CaptchaResult> {
 
 // ----------------------------------------------------------------------------
 
-static SESSION_CHARS: &'static str = "0123456789abcdefghijklmnopqrstuvwxyz";
+fn map_error(e: PersistenceError) -> ExecutorError {
+    match e {
+        PersistenceError::ConnectionFailed => ExecutorError::ConnectionFailed,
+        PersistenceError::KeyNotFound      => ExecutorError::NotFound,
+        PersistenceError::JsonError        => ExecutorError::JsonError,
+    }
+}
 
-pub fn validate_session(id: &String) -> bool {
+fn validate_session(id: &String) -> bool {
     id.chars().count() == 20 && id.chars().all(|x| SESSION_CHARS.contains(x))
 }
 

@@ -20,7 +20,7 @@ mod persistence;
 mod captcha;
 
 use arguments::parse_arguments;
-use executor::{create_and_persist_captcha, validate_session};
+use executor::{create_and_persist_captcha, get_captcha, ExecutorError};
 use config::{parse_config, Config};
 use captcha::CaptchaToJson;
 
@@ -45,27 +45,26 @@ fn do_post(_: Context, response: &mut Response, config: &Config) -> (String, Sta
     }
 }
 
+fn map_error(e: ExecutorError) -> (String, StatusCode) {
+
+    let code = match e {
+        ExecutorError::ConnectionFailed => StatusCode::ServiceUnavailable,
+        ExecutorError::NotFound => StatusCode::NotFound,
+        ExecutorError::JsonError => StatusCode::InternalServerError,
+        ExecutorError::ValidationError => StatusCode::BadRequest
+    };
+
+    (String::new(), code)
+}
+
 fn do_get(context: Context, config: &Config) -> (String, StatusCode) {
 
     match context.variables.get("id") {
         Some(id) => {
-            let i = id.to_string();
-            if !validate_session(&i) {
-                warn!(target: "main::do_get", "Validation of id failed.");
-                return bad_request();
-            }
-            info!(target: "main::do_get", "Got request for id [{}]", i);
-            (String::new(), StatusCode::Ok)
-            /*
-            match get_captcha(id) {
+            match get_captcha(id.to_string()) {
                 Ok(c)  => (c.to_json(), StatusCode::Ok),
-                Err(e) => {
-                    match e {
-
-                    }
-                }
+                Err(e) => map_error(e)
             }
-            */
         },
         None => {
             // This cannot happen.
