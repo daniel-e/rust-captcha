@@ -8,3 +8,4 @@ mod arguments;
 mod config;
 mod persistence;
 mod captcha;
+mod session;

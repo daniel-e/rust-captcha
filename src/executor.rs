@@ -1,19 +1,16 @@
-extern crate rand;
-
-use self::rand::os::OsRng;
-use self::rand::Rng;
-
 use super::config::Config;
 use super::persistence::{persist, get, PersistenceError};
-use super::captcha::{Captcha, CaptchaCreation, CaptchaToJson};
-
-static SESSION_CHARS: &'static str = "0123456789abcdefghijklmnopqrstuvwxyz";
+use super::captcha::{Captcha, CaptchaCreation, CaptchaToJson, CaptchaSolutionResponse, CaptchaSolution};
+use super::captcha::CaptchaSolutionConstraints;
+use super::session::Session;
 
 pub enum ExecutorError {
     ConnectionFailed,
     NotFound,
     JsonError,
     ValidationError,
+    NoRng,
+    DatabaseError,
 }
 
 pub struct CaptchaResult {
@@ -23,34 +20,50 @@ pub struct CaptchaResult {
 
 // ----------------------------------------------------------------------------
 
-pub fn get_captcha(session: String, conf: &Config) -> Result<CaptchaCreation, ExecutorError> {
+pub fn check_captcha(session: Session, cs: CaptchaSolution, cf: Config) -> Result<CaptchaSolutionResponse, ExecutorError> {
 
-    match validate_session(&session) {
-        true => match get(session, conf) {
-            Ok(c)  => Ok(CaptchaCreation::new(c)),
-            Err(e) => Err(map_error(e))
+    if !validate_solution(cs.solution.clone(), cf.min_letters, cf.max_letters, &cf.characters) {
+        warn!(target: "check_captcha()", "Validation of solution failed.");
+        return Err(ExecutorError::ValidationError);
+    }
+
+    match get(session.clone(), cf.clone()) { // get catpcha from Redis
+        Ok(c) => {
+            let cr = CaptchaSolutionResponse::new(&c);
+            if cr.tries >= cr.max_tries {
+                Ok(cr.set_reason("Too many tries.").set_checked(false))
+            } else if cr.solved {
+                Ok(cr.set_reason("Already solved.").set_checked(false))
+            } else {
+                let r =
+                    if c.solution == cs.solution {
+                        cr.inc_tries().set_checked(true).set_reason("Correct.").set_solved(true)
+                    } else {
+                        cr.inc_tries().set_checked(true).set_reason("Incorrect.")
+                    };
+                match persist(&Captcha::new(&r, &session.to_string(), &c.solution), cf) {
+                    Ok(_) => Ok(r),
+                    Err(e) => Err(map_error(e))
+                }
+            }
         },
-        false => {
-            warn!(target: "executor::get_captcha", "Validation of session failed.");
-            Err(ExecutorError::ValidationError)
-        }
+        Err(e) => Err(map_error(e))
+    }
+}
+
+pub fn get_captcha(session: Session, conf: Config) -> Result<CaptchaCreation, ExecutorError> {
+
+    match get(session, conf) {
+        Ok(c)  => Ok(CaptchaCreation::new(c)),
+        Err(e) => Err(map_error(e))
     }
 }
 
 /// Creates a new CAPTCHA and persists it in a database.
-pub fn create_and_persist_captcha(conf: &Config) -> Option<CaptchaResult> {
+pub fn create_and_persist_captcha(conf: Config) -> Result<CaptchaResult, ExecutorError> {
 
-    // TODO: how expensive is it to create a new PRNG for every request?
-    let mut rng = match OsRng::new() {
-        Err(_) => {
-            error!(target: "executor::create_and_persist_captcha()", "Could not create RNG.");
-            return None;
-        },
-        Ok(r) => { r }
-    };
-
-    let session = new_session(&mut rng);
-    let solution = new_solution(&mut rng, conf.min_letters, conf.max_letters, &conf.characters);
+    let session = Session::new().unwrap().to_string(); // TODO
+    let solution = CaptchaSolution::new(CaptchaSolutionConstraints::new(&conf)).unwrap().to_string();
 
     // TODO create the image
 
@@ -65,14 +78,14 @@ pub fn create_and_persist_captcha(conf: &Config) -> Option<CaptchaResult> {
     info!(target: "executor::create_and_persist_captcha()", "Created new CAPTCHA: {}", c.to_json());
 
     match persist(&c, conf) {
-        true => {
+        Ok(_) => {
             let session = c.session.clone();
-            Some(CaptchaResult {
+            Ok(CaptchaResult {
                 captcha: CaptchaCreation::new(c),
                 session: session,
             })
         }
-        false => None
+        Err(e) => Err(map_error(e))
     }
 }
 
@@ -83,33 +96,12 @@ fn map_error(e: PersistenceError) -> ExecutorError {
         PersistenceError::ConnectionFailed => ExecutorError::ConnectionFailed,
         PersistenceError::KeyNotFound      => ExecutorError::NotFound,
         PersistenceError::JsonError        => ExecutorError::JsonError,
+        PersistenceError::DatabaseError    => ExecutorError::DatabaseError,
     }
 }
 
-fn validate_session(id: &String) -> bool {
-    id.chars().count() == 20 && id.chars().all(|x| SESSION_CHARS.contains(x))
-}
+fn validate_solution(s: String, minlen: usize, maxlen: usize, chars: &String) -> bool {
 
-/// Creates a new random session id.
-fn new_session(rng: &mut OsRng) -> String {
-
-    let c = SESSION_CHARS.chars().collect::<Vec<_>>();
-    let mut s = String::new();
-    for _ in 0..20 {
-        s.push(*rng.choose(&c).unwrap());
-    }
-    s
-}
-
-/// Creates a new CAPTCHA text from a set of characters.
-fn new_solution(rng: &mut OsRng, minlen: u32, maxlen: u32, chars: &String) -> String {
-
-    let l = rng.next_u32() % (maxlen - minlen + 1) + minlen;
-    let c = chars.chars().collect::<Vec<_>>();
-
-    let mut s = String::new();
-    for _ in 0..l {
-        s.push(*rng.choose(&c).unwrap());
-    }
-    s
+    let l = s.chars().count();
+    l >= minlen && l <= maxlen && s.chars().all(|x| chars.contains(x))
 }

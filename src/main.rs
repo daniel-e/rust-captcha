@@ -1,16 +1,16 @@
-#[macro_use] extern crate rustful;
-extern crate redis;
-
-// see issue: https://github.com/rust-lang-nursery/rustc-serialize/issues/61
-extern crate rustc_serialize;
-
 #[macro_use] extern crate log;
 extern crate env_logger;
 extern crate getopts;
+// see issue: https://github.com/rust-lang-nursery/rustc-serialize/issues/61
+extern crate rustc_serialize;
 
 use std::error::Error;
+use std::io::Read;
 
-use rustful::{Server, Context, Response, TreeRouter, Method, StatusCode};
+#[macro_use] extern crate rustful;
+extern crate redis;
+
+use rustful::{Server, Context, Response, TreeRouter, StatusCode};
 use rustful::header::{ContentType, Location};
 
 mod arguments;
@@ -18,82 +18,98 @@ mod executor;
 mod config;
 mod persistence;
 mod captcha;
+mod session;
 
 use arguments::parse_arguments;
-use executor::{create_and_persist_captcha, get_captcha, ExecutorError};
-//use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_solution};
+use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_captcha};
 use config::{parse_config, Config};
-use captcha::{CaptchaToJson, CaptchaSolution};
+use captcha::{CaptchaToJson, CaptchaSolution, CaptchaSolutionConstraints};
+use session::Session;
 
-fn bad_request() -> (String, StatusCode) {
-    (String::new(), StatusCode::BadRequest)
+#[derive(Clone, Copy)]
+enum RequestType {
+    CreateCaptcha,
+    GetCaptcha,
+    CheckSolution,
 }
 
-/// Returns
-/// - 201 if CAPTCHA has been created and persisted
-/// - 503 if Redis is not available or key could not be stored
-fn do_post(_: Context, response: &mut Response, config: &Config) -> (String, StatusCode) {
+fn check_solution(id: Session, cs: CaptchaSolution, cf: Config) -> (String, StatusCode) {
 
-    match create_and_persist_captcha(config) {
-        Some(r) => {
-            let c = r.captcha;
-            let s = r.session;
-            let l = Location("/session/".to_string() + &s);
-            response.headers_mut().set(l);
-            (c.to_json(), StatusCode::Created)
-        },
-        _ => (String::new(), StatusCode::ServiceUnavailable)
+    match check_captcha(id, cs, cf) {
+        Ok(r) => (r.to_json(), StatusCode::Ok),
+        Err(e) => map_error(e)
     }
 }
 
+/// Map an executor error to an HTTP status code.
 fn map_error(e: ExecutorError) -> (String, StatusCode) {
 
     let code = match e {
         ExecutorError::ConnectionFailed => StatusCode::ServiceUnavailable,
         ExecutorError::NotFound => StatusCode::NotFound,
         ExecutorError::JsonError => StatusCode::InternalServerError,
-        ExecutorError::ValidationError => StatusCode::BadRequest
+        ExecutorError::ValidationError => StatusCode::BadRequest,
+        ExecutorError::NoRng => StatusCode::ServiceUnavailable,
+        ExecutorError::DatabaseError => StatusCode::InternalServerError,
     };
 
     (String::new(), code)
 }
 
-fn do_get(context: Context, config: &Config) -> (String, StatusCode) {
+fn get_session(context: &Context) -> Option<Session> {
 
-    match context.variables.get("id") {
-        Some(id) => {
-            match get_captcha(id.to_string(), config) {
-                Err(e) => map_error(e),
-                Ok(c)  => (c.to_json(), StatusCode::Ok)
-            }
+    context.variables.get("id").map_or(None, |id| {
+        Session::from_string(id.to_string())
+    })
+}
+
+fn bad_request() -> (String, StatusCode) {
+    (String::new(), StatusCode::BadRequest)
+}
+
+fn req_get_catpcha(context: Context, config: Config) -> (String, StatusCode) {
+
+    get_session(&context).map_or(bad_request(), |session| {
+        match get_captcha(session, config) {
+            Err(e) => map_error(e),
+            Ok(c) => (c.to_json(), StatusCode::Ok)
+        }
+    })
+}
+
+fn req_check_solution(mut context: Context, config: Config) -> (String, StatusCode) {
+
+    get_session(&context).map_or(bad_request(), |session| {
+        let mut body = String::new();
+        match context.body.read_to_string(&mut body) {
+            Ok(_) => {
+                match CaptchaSolution::from_json(body, CaptchaSolutionConstraints::new(&config)) {
+                    Some(cs) => check_solution(session, cs, config),
+                    None => bad_request()
+                }
+            },
+            Err(_) => bad_request()
+        }
+    })
+}
+
+fn req_create_captcha(response: &mut Response, config: Config) -> (String, StatusCode) {
+
+    match create_and_persist_captcha(config) {
+        Ok(r) => {
+            response.headers_mut().set(Location("/session/".to_string() + &r.session));
+            (r.captcha.to_json(), StatusCode::Created)
         },
-        None => bad_request() // This cannot happen
+        Err(e) => map_error(e)
     }
 }
 
-fn do_solution(mut context: Context, mut response: Response, config: &Config) {
+fn do_request(context: Context, mut response: Response, config: Config, rt: RequestType) {
 
-    let (body, status) = match context.variables.get("id") {
-        Some(id) => {
-            match context.body.decode_json_body::<CaptchaSolution>() {
-                Ok(cs) => {
-                    //match check_solution(id, cs, conf) {
-                    // TODO    
-                    //}
-                    println!("sol: {}", cs.solution);
-                    bad_request()
-
-                    //match check_solution(id, cs, conf) {
-                    //    Ok()
-                    //}
-                },
-                Err(_) => {
-                    println!("failed");
-                    bad_request()
-                }
-            }
-        },
-        None => bad_request() // This cannot happen
+    let (body, status) = match rt {
+        RequestType::CreateCaptcha => req_create_captcha(&mut response, config),
+        RequestType::GetCaptcha => req_get_catpcha(context, config),
+        RequestType::CheckSolution => req_check_solution(context, config),
     };
 
     response
@@ -103,62 +119,46 @@ fn do_solution(mut context: Context, mut response: Response, config: &Config) {
     response.send(body);
 }
 
-fn do_request(context: Context, mut response: Response, config: &Config) {
-
-    let (body, status) = match context.method {
-        Method::Post => do_post(context, &mut response, config),
-        Method::Get  => do_get(context, config),
-        _            => bad_request(),
-    };
-
-    response
-        .headers_mut()
-        .set(ContentType(content_type!(Application / Json; Charset = Utf8)));
-    response.set_status(status);
-    response.send(body);
-}
-
-struct Handler(fn(Context, Response, &Config), Config);
+struct Handler(Config, RequestType);
 
 impl rustful::Handler for Handler {
     fn handle_request(&self, context: Context, response: Response) {
-        self.0(context, response, &self.1)
+        do_request(context, response, self.0.clone(), self.1)
     }
 }
 
 fn main() {
+    env_logger::init().unwrap();
 
-  env_logger::init().unwrap();
+    let args = match parse_arguments() {
+        Some(a) => a,
+        _ => { return; }
+    };
 
-  let args = match parse_arguments() {
-    Some(a) => a,
-    _ => { return; }
-  };
+    let conf = match parse_config(&args.config_file) {
+        Ok(a) => a,
+        Err(msg) => {
+            println!("Could not read configuration file: {}", msg);
+            return;
+        }
+    };
 
-  let conf = match parse_config(&args.config_file) {
-    Ok(a) => a,
-    Err(msg) => {
-      println!("Could not read configuration file: {}", msg);
-      return;
+    info!(target: "main", "Starting server on port {} ...", conf.port);
+
+    let srv = Server {
+        host: conf.port.into(),
+        handlers: insert_routes! {
+            TreeRouter::new() => {
+                "/session" => Post: Handler(conf.clone(), RequestType::CreateCaptcha),
+                "/session/:id" => Get: Handler(conf.clone(), RequestType::GetCaptcha),
+                "/session/:id" => Post: Handler(conf.clone(), RequestType::CheckSolution),
+            }
+        },
+        ..Server::default() // for the rest use default values
+    }.run();
+
+    match srv {
+        Ok(_)  => { },
+        Err(e) => { error!("Could not start server: {}", e.description()) }
     }
-  };
-
-  info!(target: "main", "Starting server on port {} ...", conf.port);
-
-  let srv = Server {
-    host: conf.port.into(),
-    handlers: insert_routes! {
-      TreeRouter::new() => {
-        "/session" => Post: Handler(do_request, conf.clone()),
-        "/session/:id" => Get: Handler(do_request, conf.clone()),
-        "/session/:id" => Post: Handler(do_solution, conf.clone()),
-      }
-    },
-    ..Server::default() // for the rest use default values
-  }.run();
-
-  match srv {
-    Ok(_)  => { },
-    Err(e) => { error!("Could not start server: {}", e.description()) }
-  }
 }

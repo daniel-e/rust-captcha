@@ -18,4 +18,4 @@ start_redis: compile_redis
 	@./start_redis.sh target/redis-3.0.7/src/redis-server
 
 run: start_redis
-	RUST_LOG="info" cargo run -- -c config.json
+	RUST_LOG=main,executor,persistence cargo run -- -c config.json

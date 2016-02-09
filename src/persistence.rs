@@ -2,52 +2,55 @@ use super::redis::{Client, Commands, Connection, RedisResult};
 
 use captcha::{Captcha, CaptchaToJson};
 use super::config::Config;
+use super::session::Session;
 
 pub enum PersistenceError {
     ConnectionFailed,
     KeyNotFound,
     JsonError,
+    DatabaseError,
 }
 
 // ----------------------------------------------------------------------------
 
-pub fn get(session: String, conf: &Config) -> Result<Captcha, PersistenceError> {
+pub fn get(session: Session, conf: Config) -> Result<Captcha, PersistenceError> {
 
-    match get_connection(&conf.redis_ip) {
-        Ok(con) => get_key(con, session),
+    match get_connection(conf.redis_ip) {
+        Ok(con) => get_key(con, session.to_string()),
         Err(e)  => {
-            info!(target: "persistence::get()", "Could not retrieve session [{}]", session);
+            info!(target: "persistence::get()", "Could not retrieve session [{}]", session.to_string());
             Err(e)
         }
     }
 }
 
-pub fn persist(c: &Captcha, conf: &Config) -> bool {
+pub fn persist(c: &Captcha, conf: Config) -> Result<(), PersistenceError> {
 
     let k = c.session.clone();
 
-    match get_connection(&conf.redis_ip) {
+    match get_connection(conf.redis_ip) {
         Ok(con) => {
+            debug!(target: "persist", "persisting {}", c.to_json());
             set_key(con, k, c.to_json(), conf.expire)
         },
         _ => {
             info!(target: "persistence::persist()", "Could not persist [{}]", k);
-            false
+            Err(PersistenceError::DatabaseError)
         }
     }
 }
 
 // ----------------------------------------------------------------------------
 
-fn set_key(con: Connection, k: String, v: String, seconds: usize) -> bool {
+fn set_key(con: Connection, k: String, v: String, seconds: usize) -> Result<(), PersistenceError> {
 
     let r: RedisResult<String> = con.set_ex(k.clone(), v, seconds);
     match r {
         Err(_) => {
             error!(target: "persistence::set_key()", "Could not store value for [{}]", k);
-            false
+            Err(PersistenceError::DatabaseError)
         },
-        _ => true
+        _ => Ok(())
     }
 }
 
@@ -87,9 +90,9 @@ fn connect(client: Client) -> Result<Connection, PersistenceError> {
     }
 }
 
-fn get_connection(ip: &String) -> Result<Connection, PersistenceError> {
+fn get_connection(ip: String) -> Result<Connection, PersistenceError> {
 
-    let addr = "redis://".to_string() + ip + "/";
+    let addr = "redis://".to_string() + &ip + "/";
     match Client::open(&addr[..]) {
         Ok(client) => connect(client),
         Err(_) => {

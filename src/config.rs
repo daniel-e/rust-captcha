@@ -5,9 +5,9 @@ use std::error::Error;
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct Config {
-  pub max_tries: u32,
-  pub min_letters: u32,
-  pub max_letters: u32,
+  pub max_tries: usize,
+  pub min_letters: usize,
+  pub max_letters: usize,
   pub characters: String,
   pub redis_ip: String,
   pub expire: usize,
