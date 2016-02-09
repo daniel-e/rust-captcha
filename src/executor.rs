@@ -8,7 +8,6 @@ pub enum ExecutorError {
     ConnectionFailed,
     NotFound,
     JsonError,
-    ValidationError,
     NoRng,
     DatabaseError,
 }
@@ -21,11 +20,6 @@ pub struct CaptchaResult {
 // ----------------------------------------------------------------------------
 
 pub fn check_captcha(session: Session, cs: CaptchaSolution, cf: Config) -> Result<CaptchaSolutionResponse, ExecutorError> {
-
-    if !validate_solution(cs.solution.clone(), cf.min_letters, cf.max_letters, &cf.characters) {
-        warn!(target: "check_captcha()", "Validation of solution failed.");
-        return Err(ExecutorError::ValidationError);
-    }
 
     match get(session.clone(), cf.clone()) { // get catpcha from Redis
         Ok(c) => {
@@ -54,7 +48,7 @@ pub fn check_captcha(session: Session, cs: CaptchaSolution, cf: Config) -> Resul
 pub fn get_captcha(session: Session, conf: Config) -> Result<CaptchaCreation, ExecutorError> {
 
     match get(session, conf) {
-        Ok(c)  => Ok(CaptchaCreation::new(c)),
+        Ok(c) => Ok(CaptchaCreation::new(c)),
         Err(e) => Err(map_error(e))
     }
 }
@@ -62,31 +56,32 @@ pub fn get_captcha(session: Session, conf: Config) -> Result<CaptchaCreation, Ex
 /// Creates a new CAPTCHA and persists it in a database.
 pub fn create_and_persist_captcha(conf: Config) -> Result<CaptchaResult, ExecutorError> {
 
-    let session = Session::new().unwrap().to_string(); // TODO
-    let solution = CaptchaSolution::new(CaptchaSolutionConstraints::new(&conf)).unwrap().to_string();
+    Session::new().map_or(Err(ExecutorError::NoRng), |session| {
+        let c = CaptchaSolutionConstraints::new(&conf);
+        CaptchaSolution::new(c).map_or(Err(ExecutorError::NoRng), |solution| {
+            // TODO create the image
 
-    // TODO create the image
+            let captcha = Captcha {
+                tries: 0,
+                max_tries: conf.max_tries,
+                solved: false,
+                session: session.to_string(),
+                solution: solution.to_string(),
+            };
 
-    let c = Captcha {
-        tries: 0,
-        max_tries: conf.max_tries,
-        solved: false,
-        session: session,
-        solution: solution,
-    };
+            info!(target: "create_and_persist_captcha()", "Created new CAPTCHA: {}", captcha.to_json());
 
-    info!(target: "executor::create_and_persist_captcha()", "Created new CAPTCHA: {}", c.to_json());
-
-    match persist(&c, conf) {
-        Ok(_) => {
-            let session = c.session.clone();
-            Ok(CaptchaResult {
-                captcha: CaptchaCreation::new(c),
-                session: session,
-            })
-        }
-        Err(e) => Err(map_error(e))
-    }
+            match persist(&captcha, conf) {
+                Ok(_) => {
+                    Ok(CaptchaResult {
+                        captcha: CaptchaCreation::new(captcha),
+                        session: session.to_string(),
+                    })
+                }
+                Err(e) => Err(map_error(e))
+            }
+        })
+    })
 }
 
 // ----------------------------------------------------------------------------
@@ -98,10 +93,4 @@ fn map_error(e: PersistenceError) -> ExecutorError {
         PersistenceError::JsonError        => ExecutorError::JsonError,
         PersistenceError::DatabaseError    => ExecutorError::DatabaseError,
     }
-}
-
-fn validate_solution(s: String, minlen: usize, maxlen: usize, chars: &String) -> bool {
-
-    let l = s.chars().count();
-    l >= minlen && l <= maxlen && s.chars().all(|x| chars.contains(x))
 }

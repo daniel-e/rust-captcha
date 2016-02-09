@@ -48,7 +48,6 @@ fn map_error(e: ExecutorError) -> (String, StatusCode) {
         ExecutorError::ConnectionFailed => StatusCode::ServiceUnavailable,
         ExecutorError::NotFound => StatusCode::NotFound,
         ExecutorError::JsonError => StatusCode::InternalServerError,
-        ExecutorError::ValidationError => StatusCode::BadRequest,
         ExecutorError::NoRng => StatusCode::ServiceUnavailable,
         ExecutorError::DatabaseError => StatusCode::InternalServerError,
     };
