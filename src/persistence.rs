@@ -1,8 +1,8 @@
 use super::redis::{Client, Commands, Connection, RedisResult};
 
 use captcha::{Captcha, CaptchaToJson};
-use super::config::Config;
-use super::session::Session;
+use config::Config;
+use session::Session;
 
 pub enum PersistenceError {
     ConnectionFailed,

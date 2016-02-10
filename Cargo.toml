@@ -2,12 +2,16 @@
 name = "rust-captcha"
 version = "0.0.1"
 authors = ["daniele <git.daniele@gmail.com>"]
+build = "build.rs"
+
+[build-dependencies]
+pkg-config = "0.3.6"
 
 [dependencies]
 rustful = "0.6.1"
-log = "*"
-env_logger = "*"
-getopts = "*"
-rustc-serialize = "*"
-rand = "*"
+log = "0.3.5"
+env_logger = "0.3.2"
+getopts = "0.2.14"
+rustc-serialize = "0.3.17"
+rand = "0.3.13"
 redis = "0.5.2"

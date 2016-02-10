@@ -5,7 +5,7 @@ use self::rand::Rng;
 use std::io::Read;
 use super::rustc_serialize::json;
 
-use super::config::Config;
+use config::Config;
 
 pub trait CaptchaToJson: Sized {
     fn to_json(&self) -> String;
