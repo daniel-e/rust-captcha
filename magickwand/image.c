@@ -16,8 +16,8 @@ void draw_text(
   DestroyPixelWand(p);
 }
 
-MagickWand* draw_on_buf(
-  void* buf, size_t width, size_t height, double angle,
+void draw_on_buf(
+  void* buf, size_t x, size_t y, size_t width, size_t height, double angle,
   size_t font_size,
   const char* fgcolor,
   const char* font,
@@ -27,7 +27,7 @@ MagickWand* draw_on_buf(
   DrawingWand* d = NewDrawingWand();
 
   MagickConstituteImage(w, width, height, "RGB", CharPixel, buf);
-  draw_text(w, d, 50, 100, angle, font, font_size, fgcolor, txt);
+  draw_text(w, d, x, y, angle, font, font_size, fgcolor, txt);
   MagickExportImagePixels(w, 0, 0, width, height, "RGB", CharPixel, buf);
 
   DestroyMagickWand(w);

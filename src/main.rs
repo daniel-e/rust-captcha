@@ -19,6 +19,7 @@ mod config;
 mod persistence;
 mod captcha;
 mod session;
+mod image;
 
 use arguments::parse_arguments;
 use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_captcha};

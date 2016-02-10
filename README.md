@@ -3,10 +3,12 @@
 - [ ] generate the CAPTCHA
 - [ ] maybe the persistence layer should not know anything about a CAPTCHA
 - [ ] update documentation
+- [ ] how to link against MagickWand properly?
+- [x] compile c library for image creation with cargo
+
 - [x] fixed warnings about unused functions, structs, etc
 - [x] fix version numbers in Cargo.toml
 - [x] create build.rs to check for MagickWand dependencies
-
 - [x] implement GET request to retrieve status of a CAPTCHA
 - [x] Makefile to start redis instance on starting the service
 - [x] configure redis endpoint in configuration file

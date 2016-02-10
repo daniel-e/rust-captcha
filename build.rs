@@ -10,7 +10,7 @@ use std::fs::File;
 // http://alexcrichton.com/pkg-config-rs/pkg_config/struct.Library.html
 // https://github.com/carllerche/curl-rust/blob/master/curl-sys/Cargo.toml
 
-fn try_gcc(libname: &str, msg: &str) {
+fn try_gcc(libname: &str, msg: &str) -> (Vec<String>, Vec<String>, Vec<String>) {
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("main.c");
@@ -49,23 +49,42 @@ fn try_gcc(libname: &str, msg: &str) {
                 .status()
                 .unwrap();
             assert!(s.success(), "\n\n".to_string() + msg);
+            (libpaths, libs, includepaths)
         }
     }
 }
 
 
 fn main() {
-    try_gcc("MagickWand",
+    let (lp, libs, ip) = try_gcc("MagickWand",
         "MagickWand not found. On Ubuntu try 'sudo apt-get install libmagickwand-dev' before continuing."
-    )
+    );
 
-//    let out_dir = env::var("OUT_DIR").unwrap();
+    let out_dir = env::var("OUT_DIR").unwrap();
 
-//    Command::new("gcc").args(&["icmp/net.c", "-c", "-fPIC", "-o"])
-//                       .arg(&format!("{}/net.o", out_dir)).status().unwrap();
-//    Command::new("ar").args(&["crus", "libicmp.a", "net.o"])
-//                      .current_dir(&Path::new(&out_dir)).status().unwrap();
+    Command::new("gcc")
+        .args(&["magickwand/image.c", "-c", "-fPIC"])
+        .args(&ip)
+        .arg("-o")
+        .arg(&format!("{}/image.o", out_dir))
+        .status()
+        .unwrap();
 
-//    println!("cargo:rustc-link-search=native={}", out_dir);
-    //println!("cargo:rustc-link-lib=static=icmp");
+    Command::new("ar")
+        .args(&["crs", "libimage.a", "image.o"])
+        .current_dir(&Path::new(&out_dir))
+        .status()
+        .unwrap();
+
+    let lib = lp.iter().chain(libs.iter()).fold(String::new(), |x, i| x + &i + " ");
+
+    println!("cargo:rustc-link-search=native={}", out_dir);
+    println!("cargo:rustc-link-lib=static=image");
+
+    // TODO: how to do this?
+    //println!("cargo:rustc-link-search=native=/usr/lib/x86_64-linux-gnu");
+    //println!("cargo:rustc-link-lib=MagickWand-6.Q16");
+    //println!("cargo:rustc-link-lib=MagickCore-6.Q16");
+
+    //println!("cargo:rustc-flags={}", "-l MagickWand-6.Q16 -l MagickCore-6.Q16 -L /usr/lib/x86_64-linux-gnu");
 }
