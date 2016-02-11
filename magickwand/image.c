@@ -34,6 +34,16 @@ void draw_on_buf(
   DestroyDrawingWand(d);
 }
 
+int save_buf(void* buf, size_t width, size_t height, const char* filename) {
+
+  MagickBooleanType r = MagickFalse;
+  MagickWand* w = NewMagickWand();
+  MagickConstituteImage(w, width, height, "RGB", CharPixel, buf);
+  r = MagickWriteImage(w, filename);
+  DestroyMagickWand(w);
+  return (r == MagickTrue ? 0 : 1);
+}
+
 void init_image() {
   MagickWandGenesis();
 }

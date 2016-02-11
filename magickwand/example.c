@@ -14,11 +14,7 @@ int main() {
   memset(buffer, 255, width * height * 3);
   draw_on_buf(buffer, 50, 100, width, height, 10, 72, "blue", "Verdana-Bold-Italic", "Y");
 
-  // save image to disk
-  MagickWand* w = NewMagickWand();
-  MagickConstituteImage(w, width, height, "RGB", CharPixel, buffer);
-  MagickWriteImage(w, "/tmp/a.jpg");
-  DestroyMagickWand(w);
+  save_buf(buffer, width, height, "/tmp/a.jpg");
 
   done_image();
 }

@@ -20,6 +20,7 @@ mod persistence;
 mod captcha;
 mod session;
 mod image;
+mod generator;
 
 use arguments::parse_arguments;
 use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_captcha};

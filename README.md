@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] encode raw pixels into png and write this data into a buffer in memory
 - [ ] generate the CAPTCHA
 - [ ] maybe the persistence layer should not know anything about a CAPTCHA
 - [ ] update documentation
