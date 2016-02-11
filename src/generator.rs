@@ -43,12 +43,7 @@ impl Image {
             buf: repeat(c).take(width * height * 3).collect::<_>(),
         }
     }
-/*
-    pub fn fill(width: usize, height: usize, p: Pixel) -> Image {
 
-        let v =
-    }
-*/
     pub fn from_char(c: char) -> Image {
         let mut i = Image::new(300, 300);
         draw_char(
@@ -136,9 +131,10 @@ mod tests {
         }
         i.save("/tmp/b.jpg").unwrap();
     }
-/*
+
     #[test]
     fn test_pixel() {
-        assert!(Image::new(100, 10).pixel(0, 0).unwrap() == Pixel::white());
-    }*/
+        assert!(Image::new(100, 10).pixel(0, 0).unwrap() == Pixel::black());
+        assert!(Image::fill(100, 10, 255).pixel(0, 0).unwrap() == Pixel::white());
+    }
 }
