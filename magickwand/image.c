@@ -1,9 +1,10 @@
 #include "image.h"
+#include <pthread.h>
 
 // http://members.shaw.ca/el.supremo/MagickWand/text_effects.htm
 
 void draw_text(
-  MagickWand* w, DrawingWand* d, size_t posx, size_t posy, double angle,
+  MagickWand* w, DrawingWand* d, int posx, int posy, double angle,
   const char* font, size_t siz, const char* color, const char* text) {
 
   PixelWand* p = NewPixelWand();
@@ -17,7 +18,7 @@ void draw_text(
 }
 
 void draw_on_buf(
-  void* buf, size_t x, size_t y, size_t width, size_t height, double angle,
+  void* buf, int x, int y, size_t width, size_t height, double angle,
   size_t font_size,
   const char* fgcolor,
   const char* font,
@@ -44,10 +45,21 @@ int save_buf(void* buf, size_t width, size_t height, const char* filename) {
   return (r == MagickTrue ? 0 : 1);
 }
 
+static volatile int initialized = 0;
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
 void init_image() {
-  MagickWandGenesis();
+  pthread_mutex_lock(&lock);
+  if (initialized++ == 0) {
+    MagickWandGenesis();
+  }
+  pthread_mutex_unlock(&lock);
 }
 
 void done_image() {
-  MagickWandTerminus();
+  pthread_mutex_lock(&lock);
+  if (--initialized == 0) {
+    MagickWandTerminus();
+  }
+  pthread_mutex_unlock(&lock);
 }

@@ -6,8 +6,8 @@ use self::libc::{c_char, c_double, size_t, c_int};
 
 pub fn draw_char(
     buf: &mut Vec<u8>,
-    x: usize,
-    y: usize,
+    x: i32,
+    y: i32,
     width: usize,
     height: usize,
     angle: f64,
@@ -30,8 +30,8 @@ pub fn draw_char(
                             unsafe {
                                 draw_on_buf(
                                     buf.as_mut_ptr() as *mut c_char,
-                                    x      as size_t,
-                                    y      as size_t,
+                                    x      as c_int,
+                                    y      as c_int,
                                     width  as size_t,
                                     height as size_t,
                                     angle  as c_double,
@@ -90,8 +90,8 @@ pub fn done_img() {
 extern {
     fn draw_on_buf(
         buf: *mut c_char,
-        x: size_t,
-        y: size_t,
+        x: c_int,
+        y: c_int,
         width: size_t,
         height: size_t,
         angle: c_double,
@@ -121,20 +121,16 @@ mod tests {
     #[test]
     fn test_draw_on_buf() {
         let mut v: Vec<u8> = repeat(255).take(200 * 200 * 3).collect();
+        let _ = fs::remove_file("/tmp/a.jpg");
 
         init_img();
-
         draw_char(
             &mut v, 50, 100, 200, 200, -10.0, 72,
             "green",
             "Verdana-Bold-Italic",
             'Q'
         ).unwrap();
-
-        let _ = fs::remove_file("/tmp/a.jpg");
-
         save_img(&mut v, 200, 200, "/tmp/a.png").unwrap();
-
         done_img();
     }
 }
