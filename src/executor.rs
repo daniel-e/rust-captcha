@@ -1,8 +1,12 @@
+use super::rustc_serialize::base64::ToBase64;
+use super::rustc_serialize::base64;
+
 use config::Config;
 use persistence::{persist, get, PersistenceError};
 use captcha::{Captcha, CaptchaCreation, CaptchaToJson, CaptchaSolutionResponse, CaptchaSolution};
 use captcha::CaptchaSolutionConstraints;
 use session::Session;
+use generator::{CharConfig, captcha_png};
 
 pub enum ExecutorError {
     ConnectionFailed,
@@ -10,6 +14,7 @@ pub enum ExecutorError {
     JsonError,
     NoRng,
     DatabaseError,
+    GeneratorFailed,
 }
 
 pub struct CaptchaResult {
@@ -53,15 +58,44 @@ pub fn get_captcha(session: Session, conf: Config) -> Result<CaptchaCreation, Ex
     }
 }
 
+fn generate_image(solution: &str) -> Result<String, ExecutorError> {
+
+    let cc = CharConfig { // TODO read from config
+        min_angle: -10.0,
+        max_angle: 10.0,
+        min_size: 56,
+        max_size: 72,
+        colors: vec!["black".to_string()],
+        fonts: vec!["Verdana-Bold-Italic".to_string()]
+    };
+
+    match captcha_png(solution, &cc) {
+        Ok(png) => {
+            let bc = base64::Config {
+                char_set: base64::CharacterSet::Standard,
+                newline: base64::Newline::LF,
+                pad: true,
+                line_length: None
+            };
+            Ok(png[..].to_base64(bc))
+        },
+        Err(_) => {
+            Err(ExecutorError::GeneratorFailed)
+        }
+    }
+}
+
 /// Creates a new CAPTCHA and persists it in a database.
 pub fn create_and_persist_captcha(conf: Config) -> Result<CaptchaResult, ExecutorError> {
 
     Session::new().map_or(Err(ExecutorError::NoRng), |session| {
         let c = CaptchaSolutionConstraints::new(&conf);
         CaptchaSolution::new(c).map_or(Err(ExecutorError::NoRng), |solution| {
-            // TODO create the image
+
+            let b64 = try!(generate_image(&solution.to_string()));
 
             let captcha = Captcha {
+                // TODO add bae64 data
                 tries: 0,
                 max_tries: conf.max_tries,
                 solved: false,

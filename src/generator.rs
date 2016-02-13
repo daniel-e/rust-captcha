@@ -11,12 +11,12 @@ use std::iter::repeat;
 use image::{draw_char, save_img};
 
 pub struct CharConfig {
-    min_angle: f64,
-    max_angle: f64,
-    min_size: usize,
-    max_size: usize,
-    colors: Vec<String>,
-    fonts: Vec<String>,
+    pub min_angle: f64,
+    pub max_angle: f64,
+    pub min_size: usize,
+    pub max_size: usize,
+    pub colors: Vec<String>,
+    pub fonts: Vec<String>,
 }
 
 pub fn captcha_png(chars: &str, cc: &CharConfig) -> Result<Vec<u8>, &'static str> {

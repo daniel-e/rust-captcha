@@ -76,7 +76,7 @@ fn main() {
         .status()
         .unwrap();
 
-    let lib = lp.iter().chain(libs.iter()).fold(String::new(), |x, i| x + &i + " ");
+    let _lib = lp.iter().chain(libs.iter()).fold(String::new(), |x, i| x + &i + " ");
 
     println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=static=image");
