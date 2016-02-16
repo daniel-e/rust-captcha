@@ -1,3 +1,6 @@
+* auto-get TOC:
+{:toc}
+
 # Examples
 
 ## Create a new CAPTCHA
