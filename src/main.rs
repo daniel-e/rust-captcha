@@ -47,10 +47,10 @@ fn check_solution(id: Session, cs: CaptchaSolution, cf: Config) -> (String, Stat
 fn map_error(e: ExecutorError) -> (String, StatusCode) {
 
     let code = match e {
-        ExecutorError::ConnectionFailed => StatusCode::ServiceUnavailable,
+        ExecutorError::ConnectionFailed => StatusCode::InternalServerError,
         ExecutorError::NotFound => StatusCode::NotFound,
         ExecutorError::JsonError => StatusCode::InternalServerError,
-        ExecutorError::NoRng => StatusCode::ServiceUnavailable,
+        ExecutorError::NoRng => StatusCode::InternalServerError,
         ExecutorError::DatabaseError => StatusCode::InternalServerError,
         ExecutorError::GeneratorFailed => StatusCode::InternalServerError,
     };
