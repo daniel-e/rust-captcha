@@ -40,7 +40,7 @@ pub fn check_captcha(session: Session, cs: CaptchaSolution, cf: Config) -> Resul
                     } else {
                         cr.inc_tries().set_checked(true).set_reason("Incorrect.")
                     };
-                match persist(&Captcha::new(&r, &session.to_string(), &c.solution), cf) {
+                match persist(&Captcha::new(&r, &session.to_string(), &c.solution, c.png_data), cf) {
                     Ok(_) => Ok(r),
                     Err(e) => Err(map_error(e))
                 }
@@ -95,7 +95,7 @@ pub fn create_and_persist_captcha(conf: Config) -> Result<CaptchaResult, Executo
             let b64 = try!(generate_image(&solution.to_string()));
 
             let captcha = Captcha {
-                // TODO add bae64 data
+                png_data: b64,
                 tries: 0,
                 max_tries: conf.max_tries,
                 solved: false,

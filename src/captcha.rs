@@ -68,6 +68,7 @@ impl CaptchaToJson for CaptchaSolutionResponse {
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct CaptchaCreation {
+    png_data: String,
     solved: bool,
     tries: usize,
     max_tries: usize,
@@ -76,6 +77,7 @@ pub struct CaptchaCreation {
 impl CaptchaCreation {
     pub fn new(c: Captcha) -> CaptchaCreation {
         CaptchaCreation {
+            png_data: c.png_data,
             solved: c.solved,
             tries: c.tries,
             max_tries: c.max_tries,
@@ -93,6 +95,7 @@ impl CaptchaToJson for CaptchaCreation {
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct Captcha {
+    pub png_data: String,
     pub solution: String,
     pub tries: usize,
     pub max_tries: usize,
@@ -101,8 +104,9 @@ pub struct Captcha {
 }
 
 impl Captcha {
-    pub fn new(c: &CaptchaSolutionResponse, session: &String, solution: &String) -> Captcha {
+    pub fn new(c: &CaptchaSolutionResponse, session: &String, solution: &String, png_data: String) -> Captcha {
         Captcha {
+            png_data: png_data,
             solution: solution.clone(),
             tries: c.tries,
             max_tries: c.max_tries,

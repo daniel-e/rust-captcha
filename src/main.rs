@@ -147,6 +147,7 @@ fn main() {
 
     info!(target: "main", "Starting server on port {} ...", conf.port);
 
+    image::init_img();
     let srv = Server {
         host: conf.port.into(),
         handlers: insert_routes! {
@@ -158,9 +159,11 @@ fn main() {
         },
         ..Server::default() // for the rest use default values
     }.run();
+    image::done_img();
 
     match srv {
         Ok(_)  => { },
         Err(e) => { error!("Could not start server: {}", e.description()) }
     }
+
 }
