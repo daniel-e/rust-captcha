@@ -1,5 +1,23 @@
 # Rust-CAPTCHA - A RESTful CAPTCHA Service written in Rust
 
+## Running the service
+
+```
+# check out the sources
+git clone git@github.com:daniel-e/rust-captcha.git
+# build the sources
+# build a Redis server
+# start the Redis server and the CAPTCHA service on port 8080
+make
+```
+
+Testing
+
+```
+curl -i -X POST localhost:8080/session
+```
+
+
 ## Interfaces
 
 Rust-CAPTCHA provides an interface to 1) create a new CAPTCHA, 2) to get the status
@@ -9,7 +27,7 @@ summarized in the following table.
 | Method | Path     | Input parameters | Output parameters                  | Description |
 |--------|----------|------------------|------------------------------------|-------------|
 | POST   | /session | -                | png_data, solved, tries, max_tries | Create new CAPTCHA |
-| GET    | /session/:sessionid |       | png_data, solved, tries, max_tries | Get status of CAPTCHA |
+| GET    | /session/:sessionid | -     | png_data, solved, tries, max_tries | Get status of CAPTCHA |
 | POST   | /session/:sessionid | solution | checked, info, solved, tries, max_tries | Check solution |
 
 Input and output parameters are provided in JSON in the body of the HTTP
@@ -133,3 +151,4 @@ On error the service returns with one of the following status code:
 - [ ] maybe the persistence layer should not know anything about a CAPTCHA
 - [ ] how to link against MagickWand properly?
 - [ ] check min and max values in generator.rs:image()
+- [ ] monitoring
