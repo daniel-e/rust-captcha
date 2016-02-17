@@ -2,18 +2,21 @@
 
 ## Interfaces
 
-Rust-CAPTCHA provides an interface to create a new CAPTCHA, to get the status
-of a CAPTCHA and to check a solution.
+Rust-CAPTCHA provides an interface to 1) create a new CAPTCHA, 2) to get the status
+of a CAPTCHA and 3) to check a solution. The different methods and parameters are
+summarized in the following table.
 
-| Method | Path     | Input parameters | Output parameters                  |
-|--------|----------|------------------|------------------------------------|
-| POST   | /session | -                | png_data, solved, tries, max_tries |
-| GET    | /session/:sessionid |       | png_data, solved, tries, max_tries |
-| POST   | /session/:sessionid | solution | checked, info, solved, tries, max_tries |
+| Method | Path     | Input parameters | Output parameters                  | Description |
+|--------|----------|------------------|------------------------------------|-------------|
+| POST   | /session | -                | png_data, solved, tries, max_tries | Create new CAPTCHA |
+| GET    | /session/:sessionid |       | png_data, solved, tries, max_tries | Get status of CAPTCHA |
+| POST   | /session/:sessionid | solution | checked, info, solved, tries, max_tries | Check solution |
 
 Input and output parameters are provided in JSON in the body of the HTTP
-request / response. The semantic of the the different parameters is as follows:
+request / response. The semantic of the different parameters is as follows:
 
+| Parameter | Description |
+|-----------|-------------|
 | png_data | The image of the CAPTCHA encoded as a PNG image in base64. |
 | solved   | Is true if the CAPTCHA has been solved. |
 | tries    | Number of tries to solve the CAPTCHA. |
@@ -23,7 +26,7 @@ request / response. The semantic of the the different parameters is as follows:
 | solution | Solution of the CAPTCHA. |
 
 When a new CAPTCHA is created the response of the service will contain the
-session id of the CAPTCHA in the "Location" header field.
+session id of the new CAPTCHA in the "Location" header field.
 
 ## Examples with curl
 
