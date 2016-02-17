@@ -1,6 +1,33 @@
-# Examples
+# Rust-CAPTCHA - A RESTful CAPTCHA Service written in Rust
 
-## Create a new CAPTCHA
+## Interfaces
+
+Rust-CAPTCHA provides an interface to create a new CAPTCHA, to get the status
+of a CAPTCHA and to check a solution.
+
+| Method | Path     | Input parameters | Output parameters                  |
+|--------|----------|------------------|------------------------------------|
+| POST   | /session | -                | png_data, solved, tries, max_tries |
+| GET    | /session/:sessionid |       | png_data, solved, tries, max_tries |
+| POST   | /session/:sessionid | solution | checked, info, solved, tries, max_tries |
+
+Input and output parameters are provided in JSON in the body of the HTTP
+request / response. The semantic of the the different parameters is as follows:
+
+| png_data | The image of the CAPTCHA encoded as a PNG image in base64. |
+| solved   | Is true if the CAPTCHA has been solved. |
+| tries    | Number of tries to solve the CAPTCHA. |
+| max_tries | Maximum number of tries that are allowed to solved the CAPTCHA. |
+| checked  | True if the provided solution has been checked. |
+| info | Human readable message. |
+| solution | Solution of the CAPTCHA. |
+
+When a new CAPTCHA is created the response of the service will contain the
+session id of the CAPTCHA in the "Location" header field.
+
+## Examples with curl
+
+### Create a new CAPTCHA
 
 ```
 curl -i -X POST localhost:8080/session
@@ -26,7 +53,7 @@ HTTP/1.1 500 Internal Server Error
 
 On error the service returns with the status code "500 Internal Server Error". This error occurs if the service could not connect to the Redis database, the service was unable to store the CAPTCHA in the database or the image could not be created.
 
-## Get the status of a CAPTCHA
+### Get the status of a CAPTCHA
 
 ```
 curl -i -X GET localhost:8080/session/WHilumBnJGMjOAReDA4u
@@ -55,7 +82,7 @@ On error the service returns with one of the following status code:
 
 --------------------------------------------------------------------------------
 
-## Check the solution for a CAPTCHA
+### Check the solution for a CAPTCHA
 
 ```
 curl -i -X POST -d '{"solution": "adasdf"}' localhost:8080/session/WHilumBnJGMjOAReDA4u
@@ -97,25 +124,9 @@ On error the service returns with one of the following status code:
 * `404 Not Found`: CAPTCHA not found.
 * `500 Internal Server Error`: Connection to Redis failed or data from database could not be decoded.
 
-# TODO
+## TODO
 
 - [ ] list of fonts / which font to use
 - [ ] maybe the persistence layer should not know anything about a CAPTCHA
 - [ ] how to link against MagickWand properly?
 - [ ] check min and max values in generator.rs:image()
-- [x] encode raw pixels into png and write this data into a buffer in memory
-- [x] generate the CAPTCHA
-- [x] compile c library for image creation with cargo
-- [x] update documentation
-- [x] fixed warnings about unused functions, structs, etc
-- [x] fix version numbers in Cargo.toml
-- [x] create build.rs to check for MagickWand dependencies
-- [x] implement GET request to retrieve status of a CAPTCHA
-- [x] Makefile to start redis instance on starting the service
-- [x] configure redis endpoint in configuration file
-- [x] what is the response if the CAPTCHA does not exist for a GET?
-- [x] configure redis port
-- [x] configure TTL for entries in redis in configuration file
-- [x] configure port for server in configuration file
-- [x] filter log messages
-- [x] implement POST request to solve a CAPTCHA
