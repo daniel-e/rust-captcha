@@ -8,5 +8,5 @@ RUN apt-get -y install git
 RUN apt-get -y install libmagickwand-dev
 RUN apt-get -y install libssl-dev
 
-ADD run.sh /tmp/
-CMD ["/bin/bash", "-c", "/tmp/run.sh"]
+ADD run_test.sh /tmp/
+CMD ["/bin/bash", "-c", "/tmp/run_test.sh"]
