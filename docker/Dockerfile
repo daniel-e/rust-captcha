@@ -6,6 +6,7 @@ RUN apt-get -y install curl aptitude build-essential
 RUN apt-get -y install git
 
 RUN apt-get -y install libmagickwand-dev
+RUN apt-get -y install libssl-dev
 
 ADD run.sh /tmp/
 CMD ["/bin/bash", "-c", "/tmp/run.sh"]
