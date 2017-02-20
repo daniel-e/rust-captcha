@@ -4,11 +4,11 @@ extern crate getopts;
 // see issue: https://github.com/rust-lang-nursery/rustc-serialize/issues/61
 extern crate rustc_serialize;
 
+extern crate redis;
+#[macro_use] extern crate rustful;
+
 use std::error::Error;
 use std::io::Read;
-
-#[macro_use] extern crate rustful;
-extern crate redis;
 
 use rustful::{Server, Context, Response, TreeRouter, StatusCode};
 use rustful::header::{ContentType, Location};
@@ -18,15 +18,15 @@ mod executor;
 mod config;
 mod persistence;
 mod captcha;
-mod session;
 mod image;
 mod generator;
+mod rest_methods;
+mod session;
 
 use arguments::parse_arguments;
-use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_captcha};
-use config::{parse_config, Config};
-use captcha::{CaptchaToJson, CaptchaSolution, CaptchaSolutionConstraints};
-use session::Session;
+use config::Config;
+use rest_methods::{req_create_captcha, req_get_catpcha, req_check_solution};
+
 
 #[derive(Clone, Copy)]
 enum RequestType {
@@ -35,97 +35,26 @@ enum RequestType {
     CheckSolution,
 }
 
-fn check_solution(id: Session, cs: CaptchaSolution, cf: Config) -> (String, StatusCode) {
-
-    match check_captcha(id, cs, cf) {
-        Ok(r) => (r.to_json(), StatusCode::Ok),
-        Err(e) => map_error(e)
-    }
-}
-
-/// Map an executor error to an HTTP status code.
-fn map_error(e: ExecutorError) -> (String, StatusCode) {
-
-    let code = match e {
-        ExecutorError::ConnectionFailed => StatusCode::InternalServerError,
-        ExecutorError::NotFound => StatusCode::NotFound,
-        ExecutorError::JsonError => StatusCode::InternalServerError,
-        ExecutorError::NoRng => StatusCode::InternalServerError,
-        ExecutorError::DatabaseError => StatusCode::InternalServerError,
-        ExecutorError::GeneratorFailed => StatusCode::InternalServerError,
-    };
-
-    (String::new(), code)
-}
-
-fn get_session(context: &Context) -> Option<Session> {
-
-    context.variables.get("id").map_or(None, |id| {
-        Session::from_string(id.to_string())
-    })
-}
-
-fn bad_request() -> (String, StatusCode) {
-    (String::new(), StatusCode::BadRequest)
-}
-
-fn req_get_catpcha(context: Context, config: Config) -> (String, StatusCode) {
-
-    get_session(&context).map_or(bad_request(), |session| {
-        match get_captcha(session, config) {
-            Err(e) => map_error(e),
-            Ok(c) => (c.to_json(), StatusCode::Ok)
-        }
-    })
-}
-
-fn req_check_solution(mut context: Context, config: Config) -> (String, StatusCode) {
-
-    get_session(&context).map_or(bad_request(), |session| {
-        let mut body = String::new();
-        match context.body.read_to_string(&mut body) {
-            Ok(_) => {
-                match CaptchaSolution::from_json(body, CaptchaSolutionConstraints::new(&config)) {
-                    Some(cs) => check_solution(session, cs, config),
-                    None => bad_request()
-                }
-            },
-            Err(_) => bad_request()
-        }
-    })
-}
-
-fn req_create_captcha(response: &mut Response, config: Config) -> (String, StatusCode) {
-
-    match create_and_persist_captcha(config) {
-        Ok(r) => {
-            response.headers_mut().set(Location("/session/".to_string() + &r.session));
-            (r.captcha.to_json(), StatusCode::Created)
-        },
-        Err(e) => map_error(e)
-    }
-}
-
-fn do_request(context: Context, mut response: Response, config: Config, rt: RequestType) {
-
-    let (body, status) = match rt {
-        RequestType::CreateCaptcha => req_create_captcha(&mut response, config),
-        RequestType::GetCaptcha => req_get_catpcha(context, config),
-        RequestType::CheckSolution => req_check_solution(context, config),
-    };
-
-    response
-        .headers_mut()
-        .set(ContentType(content_type!(Application / Json; Charset = Utf8)));
-    response.set_status(status);
-    response.send(body);
-}
-
 struct Handler(Config, RequestType);
 
 impl rustful::Handler for Handler {
-    fn handle_request(&self, context: Context, response: Response) {
-        do_request(context, response, self.0.clone(), self.1)
+
+    fn handle_request(&self, context: Context, mut response: Response) {
+
+        let config = self.0.clone();
+        let rt = self.1;
+
+        let (body, status) = match rt {
+            RequestType::CreateCaptcha => req_create_captcha(&mut response, config),
+            RequestType::GetCaptcha => req_get_catpcha(context, config),
+            RequestType::CheckSolution => req_check_solution(context, config),
+        };
+
+        response
+            .headers_mut()
+            .set(ContentType(content_type!(Application / Json; Charset = Utf8)));
+        response.set_status(status);
+        response.send(body);
     }
 }
 
@@ -137,10 +66,10 @@ fn main() {
         _ => { return; }
     };
 
-    let conf = match parse_config(&args.config_file) {
+    let conf = match Config::parse_config(&args.config_file) {
         Ok(a) => a,
         Err(msg) => {
-            println!("Could not read configuration file: {}", msg);
+            error!("Could not read configuration file: {}", msg);
             return;
         }
     };
@@ -148,6 +77,7 @@ fn main() {
     info!(target: "main", "Starting server on port {} ...", conf.port);
 
     image::init_img();
+
     let srv = Server {
         host: conf.port.into(),
         handlers: insert_routes! {
@@ -159,11 +89,11 @@ fn main() {
         },
         ..Server::default() // for the rest use default values
     }.run();
+
     image::done_img();
 
     match srv {
         Ok(_)  => { },
         Err(e) => { error!("Could not start server: {}", e.description()) }
     }
-
 }

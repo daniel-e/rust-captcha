@@ -1,6 +1,6 @@
 # RESTful CAPTCHA Service
 
-A RESTful CAPTCHA service written in Rust.
+A RESTful CAPTCHA service written in Rust. The service generates images that can be embedded into web pages to protect them from being accessed by bots. The difficulty of the CAPTCHAs can be easily configured via a JSON file.
 
 ## Requirements
 
@@ -13,31 +13,32 @@ To install the requirements type the following commands on the command line:
 # Install additional packages on Ubuntu 16.10.
 sudo apt-get -y install libmagickwand-dev libssl-dev redis-server
 # Install the latest version of Rust.
+# see: https://www.rust-lang.org/en-US/install.html
 curl https://sh.rustup.rs -sSf | sh
 ```
 
 ## Running the service
 
-First, check out the sources:
+Check out the sources:
 ```
 git clone git@github.com:daniel-e/rust-captcha.git
 ```
 
-Now, compile the sources:
+Compile the sources:
 ```
 cd rust-captcha
 cargo build --release
-```
-
-Start the RESTful CAPTCHA service:
-```
-./target/release/rust-captcha -c config.json
 ```
 
 Start Redis:
 
 ```
 redis-server &
+```
+
+Start the service:
+```
+RUST_LOG=info ./target/release/rust-captcha -c config.json
 ```
 
 Testing
@@ -51,15 +52,17 @@ curl -s -X POST localhost:8080/session | jq -r .png_data | base64 -d | display
 
 ## Interfaces
 
-Rust-CAPTCHA provides an interface to 1) create a new CAPTCHA, 2) to get the status
-of a CAPTCHA and 3) to check a solution. The different methods and parameters are
-summarized in the following table.
+Rust-CAPTCHA provides an interface to
+* create a new CAPTCHA
+* to get the status of a CAPTCHA
+* to check a solution.
+The different methods and parameters are summarized in the following table.
 
 | Method | Path     | Input parameters | Output parameters                  | Description |
 |--------|----------|------------------|------------------------------------|-------------|
-| POST   | /session | -                | png_data, solved, tries, max_tries | Create new CAPTCHA |
-| GET    | /session/:sessionid | -     | png_data, solved, tries, max_tries | Get status of CAPTCHA |
-| POST   | /session/:sessionid | solution | checked, info, solved, tries, max_tries | Check solution |
+| POST   | /session | -                | png_data, solved, tries, max_tries | Create new CAPTCHA. |
+| GET    | /session/:sessionid | -     | png_data, solved, tries, max_tries | Get status of an existing CAPTCHA. |
+| POST   | /session/:sessionid | solution | checked, info, solved, tries, max_tries | Check solution. |
 
 Input and output parameters are provided in JSON in the body of the HTTP
 request / response. The semantic of the different parameters is as follows:
