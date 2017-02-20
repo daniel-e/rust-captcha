@@ -1,0 +1,13 @@
+{
+  "max_tries": 4,
+  "min_letters": 4,
+  "max_letters": 7,
+  "characters": "0123456789abcdefghijklmnopqrstuvwxyz",
+  "redis_ip": "127.0.0.1:6379",
+  "expire": 120,
+  "port": 8080,
+  "min_angle": -10,
+  "max_angle": 10,
+  "min_size": 68,
+  "max_size": 72
+}
