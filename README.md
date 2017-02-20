@@ -1,20 +1,51 @@
-# Rust-CAPTCHA - A RESTful CAPTCHA Service written in Rust
+# RESTful CAPTCHA Service
+
+A RESTful CAPTCHA service written in Rust.
+
+## Requirements
+
+* Rust 1.15+
+* On Ubuntu 16.10 the packages libmagickwand-dev libssl-dev redis-server.
+
+To install the requirements type the following commands on the command line:
+
+```bash
+# Install additional packages on Ubuntu 16.10.
+sudo apt-get -y install libmagickwand-dev libssl-dev redis-server
+# Install the latest version of Rust.
+curl https://sh.rustup.rs -sSf | sh
+```
 
 ## Running the service
 
+First, check out the sources:
 ```
-# check out the sources
 git clone git@github.com:daniel-e/rust-captcha.git
-# build the sources
-# build a Redis server
-# start the Redis server and the CAPTCHA service on port 8080
-make
+```
+
+Now, compile the sources:
+```
+cd rust-captcha
+cargo build --release
+```
+
+Start the RESTful CAPTCHA service:
+```
+./target/release/rust-captcha -c config.json
+```
+
+Start Redis:
+
+```
+redis-server &
 ```
 
 Testing
 
+Create a new image:
+
 ```
-curl -i -X POST localhost:8080/session
+curl -s -X POST localhost:8080/session | jq -r .png_data | base64 -d | display
 ```
 
 
