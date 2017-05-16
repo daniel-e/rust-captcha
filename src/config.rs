@@ -41,17 +41,20 @@ impl Config {
 
       if decoded.min_letters > decoded.max_letters {
         return Err(
-          "The value for min_letters must not be larger than max_letters.".to_string())
+          "The value for min_letters must not be larger than max_letters.".to_string()
+        )
       }
 
       if decoded.min_letters == 0 {
         return Err(
-          "The value for min_letters must greater than zero.".to_string())
+          "The value for min_letters must greater than zero.".to_string()
+        )
       }
 
       if decoded.characters.is_empty() {
-      return Err(
-        "The value for characters must not be empty.".to_string())
+        return Err(
+          "The value for characters must not be empty.".to_string()
+        )
       }
 
       Ok(decoded)

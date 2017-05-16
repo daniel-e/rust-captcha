@@ -2,7 +2,6 @@ extern crate rand;
 
 use self::rand::os::OsRng;
 use self::rand::Rng;
-use std::io::Read;
 use super::rustc_serialize::json;
 
 use config::Config;

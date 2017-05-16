@@ -4,10 +4,15 @@ use rustful::{Context, Response, StatusCode};
 use session::Session;
 use executor::{create_and_persist_captcha, get_captcha, ExecutorError, check_captcha};
 use config::Config;
-use captcha::{CaptchaToJson, CaptchaSolution, CaptchaSolutionConstraints};
+use captchatools::{CaptchaToJson, CaptchaSolution, CaptchaSolutionConstraints};
 
 use std::io::Read;
 
+// Returns the following HTTP status codes:
+// BadRequest           if session could not be extracted from request
+// Ok                   if CAPTCHA was found
+// NotFound             if CATPCHA does not exist
+// InternalServerError  otherwise (e.g. connection to Redis failed)
 pub fn req_get_catpcha(context: Context, config: Config) -> (String, StatusCode) {
 
     get_session(&context).map_or(bad_request(), |session| {
@@ -34,6 +39,9 @@ pub fn req_check_solution(mut context: Context, config: Config) -> (String, Stat
     })
 }
 
+// Returns the following HTTP status codes:
+// Created              if CAPTCHA has been created
+// InternalServerError  otherwise (e.g. connection to Redis failed)
 pub fn req_create_captcha(response: &mut Response, config: Config) -> (String, StatusCode) {
 
     match create_and_persist_captcha(config) {
@@ -44,6 +52,8 @@ pub fn req_create_captcha(response: &mut Response, config: Config) -> (String, S
         Err(e) => map_error(e)
     }
 }
+
+// -----------------------------------------------------------------------------------------------
 
 fn check_solution(id: Session, cs: CaptchaSolution, cf: Config) -> (String, StatusCode) {
 
@@ -69,7 +79,6 @@ fn map_error(e: ExecutorError) -> (String, StatusCode) {
 }
 
 fn get_session(context: &Context) -> Option<Session> {
-
     context.variables.get("id").map_or(None, |id| {
         Session::from_string(id.to_string())
     })

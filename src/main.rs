@@ -6,27 +6,30 @@ extern crate rustc_serialize;
 
 extern crate redis;
 #[macro_use] extern crate rustful;
+extern crate captcha;
 
 use std::error::Error;
-use std::io::Read;
 
-use rustful::{Server, Context, Response, TreeRouter, StatusCode};
-use rustful::header::{ContentType, Location};
+use rustful::{Server, Context, Response, TreeRouter};
+use rustful::header::ContentType;
 
 mod arguments;
-mod executor;
 mod config;
-mod persistence;
-mod captcha;
-mod image;
-mod generator;
 mod rest_methods;
+mod executor;
 mod session;
+mod persistence;
+mod captchatools;
 
 use arguments::parse_arguments;
 use config::Config;
 use rest_methods::{req_create_captcha, req_get_catpcha, req_check_solution};
+use captcha::{init, done};
 
+// The code here is responsible for:
+// * reading command line arguments (via module arguments.rs)
+// * reading configuration file (via module config.rs)
+// * running the server, receiving requests and sending responses (via rustful)
 
 #[derive(Clone, Copy)]
 enum RequestType {
@@ -42,9 +45,9 @@ impl rustful::Handler for Handler {
     fn handle_request(&self, context: Context, mut response: Response) {
 
         let config = self.0.clone();
-        let rt = self.1;
+        let req_type = self.1;
 
-        let (body, status) = match rt {
+        let (body, status) = match req_type {
             RequestType::CreateCaptcha => req_create_captcha(&mut response, config),
             RequestType::GetCaptcha => req_get_catpcha(context, config),
             RequestType::CheckSolution => req_check_solution(context, config),
@@ -61,22 +64,22 @@ impl rustful::Handler for Handler {
 fn main() {
     env_logger::init().unwrap();
 
-    let args = match parse_arguments() {
-        Some(a) => a,
-        _ => { return; }
-    };
-
-    let conf = match Config::parse_config(&args.config_file) {
-        Ok(a) => a,
-        Err(msg) => {
-            error!("Could not read configuration file: {}", msg);
-            return;
+    let conf = match parse_arguments() {
+        Some(args) => {
+            match Config::parse_config(&args.config_file) {
+                Ok(conf) => conf,
+                Err(msg) => {
+                    error!("Could not read configuration file: {}", msg);
+                    return;
+                }
+            }
         }
+        _ => { return; }
     };
 
     info!(target: "main", "Starting server on port {} ...", conf.port);
 
-    image::init_img();
+    init();
 
     let srv = Server {
         host: conf.port.into(),
@@ -90,10 +93,10 @@ fn main() {
         ..Server::default() // for the rest use default values
     }.run();
 
-    image::done_img();
+    done();
 
     match srv {
-        Ok(_)  => { },
+        Ok(_)  => { info!("Quit.") },
         Err(e) => { error!("Could not start server: {}", e.description()) }
     }
 }

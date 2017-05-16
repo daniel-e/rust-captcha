@@ -1,6 +1,6 @@
 use super::redis::{Client, Commands, Connection, RedisResult};
 
-use captcha::{Captcha, CaptchaToJson};
+use captchatools::{Captcha, CaptchaToJson};
 use config::Config;
 use session::Session;
 
@@ -24,6 +24,7 @@ pub fn get(session: Session, conf: Config) -> Result<Captcha, PersistenceError> 
     }
 }
 
+// PersistenceError in [DatabaseError]
 pub fn persist(c: &Captcha, conf: Config) -> Result<(), PersistenceError> {
 
     let k = c.session.clone();

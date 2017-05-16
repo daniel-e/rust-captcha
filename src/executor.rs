@@ -3,10 +3,10 @@ use super::rustc_serialize::base64;
 
 use config::Config;
 use persistence::{persist, get, PersistenceError};
-use captcha::{Captcha, CaptchaCreation, CaptchaToJson, CaptchaSolutionResponse, CaptchaSolution};
-use captcha::CaptchaSolutionConstraints;
+use captchatools::{Captcha, CaptchaCreation, CaptchaToJson, CaptchaSolutionResponse, CaptchaSolution};
+use captchatools::CaptchaSolutionConstraints;
 use session::Session;
-use generator::{CharConfig, captcha_png};
+use captcha::{CharConfig, captcha_png};
 
 pub enum ExecutorError {
     ConnectionFailed,
@@ -58,6 +58,7 @@ pub fn get_captcha(session: Session, conf: Config) -> Result<CaptchaCreation, Ex
     }
 }
 
+// ExecutorError in [GeneratorFailed]
 fn generate_image(solution: &str) -> Result<String, ExecutorError> {
 
     let cc = CharConfig { // TODO read from config
@@ -85,7 +86,7 @@ fn generate_image(solution: &str) -> Result<String, ExecutorError> {
     }
 }
 
-/// Creates a new CAPTCHA and persists it in a database.
+// ExecutorError in [GeneratorFailed, NoRng, DatabaseError]
 pub fn create_and_persist_captcha(conf: Config) -> Result<CaptchaResult, ExecutorError> {
 
     Session::new().map_or(Err(ExecutorError::NoRng), |session| {
