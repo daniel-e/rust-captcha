@@ -3,16 +3,11 @@ name = "rust-captcha"
 version = "0.0.1"
 authors = ["daniele <git.daniele@gmail.com>"]
 
-#[dependencies.lodepng]
-#git = "https://github.com/pornel/lodepng-rust.git"
-
 [dependencies]
-rustful = "*"
 log = "*"
 env_logger = "*"
-getopts = "*"
-rustc-serialize = "*"
-rand = "*"
-redis = "*"
-libc = "*"
-captcha = { git = "https://github.com/daniel-e/captcha-rs.git" }
+hyper = "*"
+
+#getopts = "*"
+#redis = "*"
+#captcha = { git = "https://github.com/daniel-e/captcha-rs.git" }
