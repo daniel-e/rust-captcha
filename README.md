@@ -1,3 +1,7 @@
+REDIS_HOST=localhost cargo run
+
+
+
 # RESTful CAPTCHA Service
 
 A RESTful CAPTCHA service written in Rust. The service generates images that can be embedded into web pages to protect them from being accessed by bots. The difficulty of the CAPTCHAs can be easily configured via a JSON file.
