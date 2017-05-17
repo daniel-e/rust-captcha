@@ -6,8 +6,14 @@ authors = ["daniele <git.daniele@gmail.com>"]
 [dependencies]
 log = "*"
 env_logger = "*"
-hyper = "*"
+rustful = "*"
+uuid = { version = "*", features = ["v4"] }
+base64 = "*"
+serde_json = "*"
+serde_derive = "*"
+serde = "*"
+redis = "*"
+captcha = { git = "https://github.com/daniel-e/captcha.git" }
 
+#hyper = "*"
 #getopts = "*"
-#redis = "*"
-#captcha = { git = "https://github.com/daniel-e/captcha-rs.git" }

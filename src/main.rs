@@ -1,31 +1,35 @@
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate rustful;
 extern crate env_logger;
-extern crate hyper;
+extern crate rust_captcha;
 
-use hyper::server::{Server, Request, Response};
-use hyper::status::StatusCode;
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use rustful::{Server, TreeRouter};
+use std::error::Error;
 
-const PORT: u32 = 8080;
-const THREADS: usize = 8;
+use rust_captcha::requesthandler::{RequestHandler, CaptchaMethod};
 
-fn incoming(req: Request, mut res: Response) {
-    *res.status_mut() = StatusCode::BadRequest;
-    res.headers_mut().set(ContentType(
-            Mime(TopLevel::Application, SubLevel::Json, vec![(Attr::Charset, Value::Utf8)]))
-    );
-    res.send(b"hello");
-}
+const PORT: u16 = 8080;
 
 fn main() {
     env_logger::init().expect("initializing logger failed");
 
     info!(target: "main", "Starting server on port {} ...", PORT);
 
-    Server::http(format!("0.0.0.0:{}", PORT))
-        .expect("http failed")
-        .handle_threads(incoming, THREADS)
-        .expect("handle failed");
+    let ret = Server {
+        handlers: insert_routes! {
+            TreeRouter::new() => {
+                "/new/:difficulty/:max_tries/:ttl" => Post: RequestHandler::new(CaptchaMethod::New),
+                "/solution/:id/:solution"          => Post: RequestHandler::new(CaptchaMethod::Solution)
+            }
+        },
+        host: PORT.into(),
+        ..Server::default()
+    }.run();
+
+    match ret {
+        Ok(_)  => { },
+        Err(e) => println!("could not start server: {}", e.description())
+    }
 }
