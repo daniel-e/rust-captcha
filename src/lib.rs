@@ -7,6 +7,7 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate serde;
 extern crate redis;
+extern crate hyper;
 
 pub mod methods;
 pub mod requesthandler;

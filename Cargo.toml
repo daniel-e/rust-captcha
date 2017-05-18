@@ -14,6 +14,6 @@ serde_derive = "*"
 serde = "*"
 redis = "*"
 captcha = { git = "https://github.com/daniel-e/captcha.git" }
+hyper = "*"
 
-#hyper = "*"
 #getopts = "*"
