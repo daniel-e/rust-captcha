@@ -14,14 +14,14 @@ pub fn validate_difficulty(s: String) -> Result<Difficulty, CaptchaError> {
     }
 }
 
-pub fn validate_tries(s: String) -> Result<u32, CaptchaError> {
+pub fn validate_tries(s: String) -> Result<usize, CaptchaError> {
     if s.len() > 3 {
         return Err(CaptchaError::InvalidParameters);
     }
-    s.parse::<u32>().map_err(|_| CaptchaError::InvalidParameters)
+    s.parse::<usize>().map_err(|_| CaptchaError::InvalidParameters)
 }
 
-pub fn validate_ttl(s: String) -> Result<u32, CaptchaError> {
+pub fn validate_ttl(s: String) -> Result<usize, CaptchaError> {
     validate_tries(s)
 }
 

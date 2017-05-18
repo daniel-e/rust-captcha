@@ -1,5 +1,5 @@
 use std::env;
-use redis::{Client, Commands, RedisResult};
+use redis::{Client, Commands, RedisResult, Connection};
 
 pub type QueryResult = Result<(String, u32), PersistenceError>;
 
@@ -11,25 +11,25 @@ pub enum PersistenceError {
     InvalidData
 }
 
-pub fn persist(uuid: String, solution: String, max_tries: u32, ttl: u32) -> Result<(), PersistenceError> {
-
-    let c = Client::open(address()?.as_str()).map_err(|_| PersistenceError::Connection)?;
-    let con = c.get_connection().map_err(|_| PersistenceError::Connection)?;
-
-    let data = solution + ":" + max_tries.to_string().as_str();
-    let r: RedisResult<String> = con.set_ex(uuid, data, ttl as usize);
-    r.map_err(|_| PersistenceError::Connection).map(|_| ())
+pub fn persist(uuid: String, solution: String, max_tries: usize, ttl: usize) -> Result<(), PersistenceError> {
+    connect()?
+        .set_ex::<String, String, String>(uuid, format!("{}:{}", solution, max_tries), ttl)
+        .map_err(|_| PersistenceError::Connection)
+        .map(|_| ())
 }
 
 pub fn from_persistence(uuid: String) -> QueryResult {
-
-    let c = Client::open(address()?.as_str()).map_err(|_| PersistenceError::Connection)?;
-    let con = c.get_connection().map_err(|_| PersistenceError::Connection)?;
-
-    Ok(parse_result(con.get(uuid))?)
+    Ok(parse_result(connect()?.get(uuid))?)
 }
 
 // -------------------------------------------------------------------------------------------------
+
+fn connect() -> Result<Connection, PersistenceError> {
+    Ok(Client::open(address()?.as_str())
+        .map_err(|_| PersistenceError::Connection)?
+        .get_connection().map_err(|_| PersistenceError::Connection)?
+    )
+}
 
 fn address() -> Result<String, PersistenceError> {
     let l = env::var("REDIS_HOST").map_err(|_| PersistenceError::NoLocation)?;
@@ -57,11 +57,35 @@ fn parse_result(r: RedisResult<Option<String>>) -> QueryResult {
 #[cfg(test)]
 mod tests {
     use std::env;
-    use persistence::{PersistenceError, address, persist, from_persistence};
+    use persistence::{PersistenceError, address, persist, from_persistence, parse_result};
     use std::thread::sleep;
     use std::time::Duration;
+    use std::io::{Error, ErrorKind};
+    use redis::RedisError;
 
     // For the following tests Redis must be running.
+
+    fn as_some(s: &str) -> Option<String> {
+        Some(s.to_string())
+    }
+
+    #[test]
+    fn test_parse_result() {
+        assert_eq!(
+            parse_result(Err(RedisError::from(Error::new(ErrorKind::Other, "x")))).err().unwrap(),
+            PersistenceError::Connection
+        );
+
+        assert_eq!(parse_result(Ok(None)).err().unwrap(), PersistenceError::NotFound);
+
+        assert_eq!(parse_result(Ok(as_some("a"))).err().unwrap(), PersistenceError::InvalidData);
+        assert_eq!(parse_result(Ok(as_some("a:"))).err().unwrap(), PersistenceError::InvalidData);
+        assert_eq!(parse_result(Ok(as_some("a:a"))).err().unwrap(), PersistenceError::InvalidData);
+        assert_eq!(parse_result(Ok(as_some("a:1:"))).err().unwrap(), PersistenceError::InvalidData);
+        assert_eq!(parse_result(Ok(as_some("a:1:a"))).err().unwrap(), PersistenceError::InvalidData);
+
+        assert_eq!(parse_result(Ok(as_some("a:1"))), Ok(("a".to_string(), 1)));
+    }
 
     #[test]
     fn test_address() {

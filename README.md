@@ -1,6 +1,6 @@
 * readme updaten
 * tests
-* solution implementieren
+* docker
 
 REDIS_HOST=localhost cargo run
 
