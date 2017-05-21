@@ -8,6 +8,7 @@ extern crate serde_derive;
 extern crate serde;
 extern crate redis;
 extern crate hyper;
+extern crate time;
 
 pub mod methods;
 pub mod requesthandler;

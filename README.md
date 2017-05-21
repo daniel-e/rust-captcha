@@ -1,9 +1,12 @@
 * readme updaten
 * tests
 * docker
+* types instead of strings
 
 REDIS_HOST=localhost cargo run
 
+curl -s -i -XPOST http://localhost:8080/new/easy/0/30
+curl -s -i -XPOST http://localhost:8080/solution/59784187-68b7-44bd-9157-4c4e5a5b50f4/solution
 
 
 # RESTful CAPTCHA Service

@@ -1,10 +1,11 @@
 use captcha::{Difficulty, gen};
 use validation::*;
-use persistence::{persist, from_persistence, PersistenceError};
+use persistence::{Persistence, Item, Error, build_item};
 
 use uuid::{Uuid, UuidVersion};
 use base64::encode;
 use serde_json;
+use time;
 
 pub type CaptchaResult = Result<String, CaptchaError>;
 
@@ -16,6 +17,7 @@ pub enum CaptchaError {
     ToJson,
     Persist,
     NotFound,
+    Unexpected
 }
 
 pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> CaptchaResult {
@@ -34,7 +36,15 @@ pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> Captch
 
     let json = serde_json::to_string(&c).map_err(|_| CaptchaError::ToJson)?;
 
-    persist(uuid, solution, x, t)
+    let item = build_item()
+        .uuid(uuid)
+        .solution(solution)
+        .tries_left(x)
+        .ttl(t)
+        .item()
+        .map_err(|_| CaptchaError::Unexpected)?;
+
+    Persistence::set(item)
         .map(|_| json)
         .map_err(|_| CaptchaError::Persist)
 }
@@ -44,36 +54,41 @@ pub fn captcha_solution(id: String, solution: String) -> CaptchaResult {
     let i = validate_id(id)?;
     let s = validate_solution(solution)?;
 
-    from_persistence(i.hyphenated().to_string())
+    Persistence::get(i.hyphenated().to_string())
         .map_err(persistence_error_mapping)
-        .and_then(|(solution_in_db, tries_left)| check(s, solution_in_db, tries_left))
+        .and_then(|item| check(s, item))
 }
 
 // -------------------------------------------------------------------------------------------------
 
-fn persistence_error_mapping(e: PersistenceError) -> CaptchaError {
+fn persistence_error_mapping(e: Error) -> CaptchaError {
     match e {
-        PersistenceError::Connection |
-        PersistenceError::NoLocation  => CaptchaError::Persist,
-        PersistenceError::NotFound    => CaptchaError::NotFound,
-        PersistenceError::InvalidData => CaptchaError::Persist
+        Error::Connection |
+        Error::NoLocation  => CaptchaError::Persist,
+        Error::NotFound    => CaptchaError::NotFound,
+        Error::Json        => CaptchaError::Persist
     }
 }
 
-fn check_solution(user_solution: String, db_solution: String, tries_left: u32) -> CaptchaSolutionResponse {
-    if db_solution == user_solution {
+fn check_solution(user_solution: String, item: Item) -> CaptchaSolutionResponse {
+    if item.solution() == user_solution {
+        Persistence::del(item.uuid());
         CaptchaSolutionResponse::accept()
-        // TODO remove from redis
     } else {
-        // TODO decrement
-        CaptchaSolutionResponse::reject("incorrect solution", tries_left - 1)
+        let t = time::now().to_timespec().sec;
+        if item.expires() > t {
+            Persistence::set(item.dec_tries_left()).ok();
+        } else {
+            Persistence::del(item.uuid());
+        };
+        CaptchaSolutionResponse::reject("incorrect solution", item.tries_left() - 1)
     }
 }
 
-fn check(user_solution: String, db_solution: String, tries_left: u32) -> CaptchaResult {
-    let r = match tries_left {
+fn check(user_solution: String, item: Item) -> CaptchaResult {
+    let r = match item.tries_left() {
         0 => CaptchaSolutionResponse::reject("too many trials", 0),
-        _ => check_solution(user_solution, db_solution, tries_left)
+        _ => check_solution(user_solution, item)
     };
     Ok(serde_json::to_string(&r).map_err(|_| CaptchaError::ToJson)?)
 }
@@ -82,11 +97,11 @@ fn check(user_solution: String, db_solution: String, tries_left: u32) -> Captcha
 struct CaptchaSolutionResponse {
     result: String,
     reject_reason: String,
-    trials_left: u32
+    trials_left: usize
 }
 
 impl CaptchaSolutionResponse {
-    pub fn reject(reason: &str, trials_left: u32) -> CaptchaSolutionResponse {
+    pub fn reject(reason: &str, trials_left: usize) -> CaptchaSolutionResponse {
         CaptchaSolutionResponse {
             result: String::from("rejected"),
             reject_reason: reason.to_string(),

@@ -21,8 +21,8 @@ pub fn validate_tries(s: String) -> Result<usize, CaptchaError> {
     s.parse::<usize>().map_err(|_| CaptchaError::InvalidParameters)
 }
 
-pub fn validate_ttl(s: String) -> Result<usize, CaptchaError> {
-    validate_tries(s)
+pub fn validate_ttl(s: String) -> Result<i64, CaptchaError> {
+    Ok(validate_tries(s)? as i64)
 }
 
 pub fn validate_id(s: String) -> Result<Uuid, CaptchaError> {
