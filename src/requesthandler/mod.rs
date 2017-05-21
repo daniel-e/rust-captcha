@@ -37,7 +37,8 @@ fn map_err(e: CaptchaError) -> StatusCode {
         CaptchaError::Uuid              => StatusCode::InternalServerError,
         CaptchaError::ToJson            => StatusCode::InternalServerError,
         CaptchaError::Persist           => StatusCode::InternalServerError,
-        CaptchaError::NotFound          => StatusCode::NotFound
+        CaptchaError::NotFound          => StatusCode::NotFound,
+        CaptchaError::Unexpected        => StatusCode::InternalServerError
     }
 }
 
