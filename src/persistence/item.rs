@@ -48,13 +48,13 @@ pub fn build_item() -> ItemBuilder {
 }
 
 impl ItemBuilder {
-    pub fn uuid(&mut self, uuid: String) -> &mut Self {
-        self.uuid = Some(uuid);
+    pub fn uuid<T: ToString>(&mut self, uuid: T) -> &mut Self {
+        self.uuid = Some(uuid.to_string());
         self
     }
 
-    pub fn solution(&mut self, solution: String) -> &mut Self {
-        self.solution = Some(solution);
+    pub fn solution<T: ToString>(&mut self, solution: T) -> &mut Self {
+        self.solution = Some(solution.to_string());
         self
     }
 

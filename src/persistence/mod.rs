@@ -22,12 +22,12 @@ impl Persistence {
             .map(|_| ())
     }
 
-    pub fn get(uuid: String) -> QueryResult {
-        Ok(parse_result(connect()?.get(key(uuid)))?)
+    pub fn get<T: ToString>(uuid: T) -> QueryResult {
+        Ok(parse_result(connect()?.get(key(uuid.to_string())))?)
     }
 
-    pub fn del(uuid: String) {
-        connect().ok().and_then(|c| c.del::<String, Option<String>>(key(uuid)).ok());
+    pub fn del<T: ToString>(uuid: T) {
+        connect().ok().and_then(|c| c.del::<String, Option<String>>(key(uuid.to_string())).ok());
     }
 }
 
@@ -98,8 +98,8 @@ mod tests {
 
         let s = "{\"uuid\":\"x\",\"solution\":\"solution\",\"tries_left\":3,\"expires\":12345678}";
         let i = build_item()
-            .uuid("x".to_string())
-            .solution("solution".to_string())
+            .uuid("x")
+            .solution("solution")
             .tries_left(3)
             .expires(time::at(time::Timespec{ sec: 12345678, nsec: 0}))
             .item()
@@ -125,20 +125,20 @@ mod tests {
         env::set_var("REDIS_HOST", "localhost");
 
         // Search an element that does not exist.
-        assert_eq!(Persistence::get("xx".to_string()).expect_err("a"), Error::NotFound);
+        assert_eq!(Persistence::get("xx").expect_err("a"), Error::NotFound);
 
         // Insert an element that will be expired after 1 second.
         let t = time::now().to_timespec().sec;
         let i = build_item()
-            .uuid("uid".to_string())
-            .solution("sol".to_string())
+            .uuid("uid")
+            .solution("sol")
             .tries_left(3)
             .ttl(1)
             .item().expect("building item");
         assert!(Persistence::set(i).is_ok());
 
         // Get an element that does exist.
-        let j = Persistence::get("uid".to_string()).expect("b");
+        let j = Persistence::get("uid").expect("b");
         assert_eq!(j.solution(), "sol".to_string());
         assert_eq!(j.tries_left(), 3);
         assert_eq!(j.uuid(), "uid".to_string());
@@ -160,15 +160,15 @@ mod tests {
         // Insert an element that will be expired after 2 second.
         let t = time::now().to_timespec().sec;
         let i = build_item()
-            .uuid("uidr".to_string())
-            .solution("solution".to_string())
+            .uuid("uidr")
+            .solution("solution")
             .tries_left(3)
             .ttl(10)
             .item().expect("building item");
         assert!(Persistence::set(i).is_ok());
 
         // Check that the element does exist.
-        let j = Persistence::get("uidr".to_string()).expect("d");
+        let j = Persistence::get("uidr").expect("d");
         assert_eq!(j.solution(), "solution".to_string());
         assert_eq!(j. tries_left(), 3);
         assert!(j.expires() == t + 10 || j.expires() == t + 11);
