@@ -121,34 +121,56 @@ mod tests {
     }
 
     #[test]
-    fn test_persist() {
+    fn test_notfound() {
         env::set_var("REDIS_HOST", "localhost");
 
         // Search an element that does not exist.
         assert_eq!(Persistence::get("xx").expect_err("a"), Error::NotFound);
 
+        env::remove_var("REDIS_HOST");
+    }
+
+    #[test]
+    fn test_expire() {
+        env::set_var("REDIS_HOST", "localhost");
+
         // Insert an element that will be expired after 1 second.
-        let t = time::now().to_timespec().sec;
         let i = build_item()
-            .uuid("uid")
-            .solution("sol")
+            .uuid("uid1234")
+            .solution("sol1234")
             .tries_left(3)
             .ttl(1)
             .item().expect("building item");
         assert!(Persistence::set(i).is_ok());
 
-        // Get an element that does exist.
-        let j = Persistence::get("uid").expect("b");
-        assert_eq!(j.solution(), "sol".to_string());
-        assert_eq!(j.tries_left(), 3);
-        assert_eq!(j.uuid(), "uid".to_string());
-        assert!(j.expires() == t + 1 || j.expires() == t + 2);
+        // Check that the element exists.
+        assert_eq!(Persistence::get("uid1234").expect("b").solution(), "sol1234");
 
         // Wait that the element is removed from Redis ...
         sleep(Duration::from_secs(2));
 
         // Check that item is removed.
-        assert_eq!(Persistence::get("uid".to_string()).expect_err("c"), Error::NotFound);
+        assert_eq!(Persistence::get("uid1234").expect_err("c"), Error::NotFound);
+
+        env::remove_var("REDIS_HOST");
+    }
+
+    #[test]
+    fn test_persist() {
+        env::set_var("REDIS_HOST", "localhost");
+
+        // Insert an element that will expire after 1 second.
+        let i = build_item()
+            .uuid("uid_persist")
+            .solution("solp")
+            .tries_left(3)
+            .ttl(1)
+            .item()
+            .expect("building item");
+        assert!(Persistence::set(i).is_ok());
+
+        // Check that the element exists.
+        assert_eq!(Persistence::get("uid_persist").expect("b").solution(), "solp");
 
         env::remove_var("REDIS_HOST");
     }
@@ -157,27 +179,24 @@ mod tests {
     fn test_delete() {
         env::set_var("REDIS_HOST", "localhost");
 
-        // Insert an element that will be expired after 2 second.
-        let t = time::now().to_timespec().sec;
+        // Insert an element that will be expired after 10 second.
         let i = build_item()
             .uuid("uidr")
-            .solution("solution")
+            .solution("solution123")
             .tries_left(3)
             .ttl(10)
-            .item().expect("building item");
+            .item()
+            .expect("building item");
         assert!(Persistence::set(i).is_ok());
 
         // Check that the element does exist.
-        let j = Persistence::get("uidr").expect("d");
-        assert_eq!(j.solution(), "solution".to_string());
-        assert_eq!(j. tries_left(), 3);
-        assert!(j.expires() == t + 10 || j.expires() == t + 11);
+        assert_eq!(Persistence::get("uidr").unwrap().solution(), "solution123");
 
         // Remove that item
-        Persistence::del("uidr".to_string());
+        Persistence::del("uidr");
 
         // Check that item is removed.
-        assert_eq!(Persistence::get("uidr".to_string()).expect_err("e"), Error::NotFound);
+        assert_eq!(Persistence::get("uidr").expect_err("e"), Error::NotFound);
 
         env::remove_var("REDIS_HOST");
     }
