@@ -1,6 +1,6 @@
 use rustful::{Handler, Context, Response, StatusCode};
 use methods::{CaptchaError, CaptchaResult, captcha_new, captcha_solution};
-use hyper::header::ContentType;
+use rustful::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
 pub enum CaptchaMethod {

@@ -1,5 +1,6 @@
+
 * readme updaten
-* tests
+* tests (unittest + integration tests)
 * docker
 * types instead of strings
 
