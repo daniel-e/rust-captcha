@@ -44,8 +44,12 @@ fn map_err(e: CaptchaError) -> StatusCode {
 
 fn check(r: CaptchaResult, mut res: Response) {
     match r {
-        Err(e) => { res.set_status(map_err(e)); }
+        Err(e) => {
+            error!(target: "requesthandler", "{:?}", e);
+            res.set_status(map_err(e));
+        }
         Ok(s)  => {
+            info!(target: "requesthandler", "successfully created a CAPTCHA");
             res.headers_mut().set(
                 ContentType(Mime(TopLevel::Application, SubLevel::Json, vec![(Attr::Charset, Value::Utf8)]))
             );

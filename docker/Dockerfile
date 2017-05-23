@@ -12,17 +12,17 @@ RUN apt-get -y install libssl-dev
 
 RUN addgroup --gid 1000 dev
 RUN useradd -m dev --gid 1000 --uid 1000
+ADD run.sh /home/dev/
 
 WORKDIR /tmp/
 
 # install latest version of Rust
-RUN curl https://sh.rustup.rs -sS -o install_rust.sh
-RUN chmod +x install_rust.sh
-RUN ./install_rust.sh -y
+RUN curl https://sh.rustup.rs -sS -o install_rust.sh && chmod +x install_rust.sh && ./install_rust.sh -y
 
 # install latest version of CAPTCHA service
-RUN git clone https://github.com/daniel-e/rust-captcha.git
-RUN cd rust-captcha
-RUN export PATH=/root/.cargo/bin/:$PATH
-RUN cargo build --release
+RUN git clone -b refactor https://github.com/daniel-e/rust-captcha.git
+WORKDIR /tmp/rust-captcha
+RUN PATH=/root/.cargo/bin/:$PATH cargo build --release
+RUN cp target/release/rust-captcha /home/dev/
 
+CMD ["su", "-", "-c", "/home/dev/run.sh", "dev"]

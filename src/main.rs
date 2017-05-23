@@ -7,15 +7,31 @@ extern crate rust_captcha;
 
 use rustful::{Server, TreeRouter};
 use std::error::Error;
+use std::env;
 
 use rust_captcha::requesthandler::{RequestHandler, CaptchaMethod};
 
 const PORT: u16 = 8080;
 
+fn precondition_checks() -> bool {
+    match env::var("REDIS_HOST") {
+        Err(_) => {
+            error!("Environment variable REDIS_HOST not set.");
+            false
+        },
+        Ok(_)  => true
+    }
+}
+
 fn main() {
     env_logger::init().expect("initializing logger failed");
 
-    info!(target: "main", "Starting server on port {} ...", PORT);
+    if !precondition_checks() {
+        error!("Failed to start server.");
+        return;
+    }
+
+    info!("Starting server on port {} ...", PORT);
 
     let ret = Server {
         handlers: insert_routes! {
@@ -30,6 +46,6 @@ fn main() {
 
     match ret {
         Ok(_)  => { },
-        Err(e) => println!("could not start server: {}", e.description())
+        Err(e) => error!("Could not start server: {}", e.description())
     }
 }

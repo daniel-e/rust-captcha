@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate log;
 extern crate rustful;
 extern crate captcha;
 extern crate uuid;

@@ -9,7 +9,7 @@ use time;
 
 pub type CaptchaResult = Result<String, CaptchaError>;
 
-
+#[derive(Debug)]
 pub enum CaptchaError {
     InvalidParameters,
     CaptchaGeneration,
@@ -44,6 +44,7 @@ pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> Captch
         .item()
         .map_err(|_| CaptchaError::Unexpected)?;
 
+    info!("new {:?}", item);
     Persistence::set(item)
         .map(|_| json)
         .map_err(|_| CaptchaError::Persist)
@@ -86,6 +87,7 @@ fn check_solution(user_solution: String, item: Item) -> CaptchaSolutionResponse 
 }
 
 fn check(user_solution: String, item: Item) -> CaptchaResult {
+    info!("tries: {} {}", user_solution, item.tries_left());
     let r = match item.tries_left() {
         0 => CaptchaSolutionResponse::reject("too many trials", 0),
         _ => check_solution(user_solution, item)
