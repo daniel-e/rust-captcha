@@ -1,5 +1,5 @@
 use rustful::{Handler, Context, Response, StatusCode};
-use methods::{CaptchaError, CaptchaResult, captcha_new, captcha_solution};
+use methods::{CaptchaError, CaptchaNewResult, CaptchaSolutionResult, captcha_new, captcha_solution};
 use rustful::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
@@ -21,12 +21,39 @@ impl RequestHandler {
 }
 
 impl Handler for RequestHandler {
-    fn handle_request(&self, c: Context, res: Response) {
-        let r = match self.method {
-            CaptchaMethod::New => req_captcha_new(c),
-            CaptchaMethod::Solution => req_captcha_solution(c)
+    fn handle_request(&self, c: Context, mut res: Response) {
+        match self.method {
+            CaptchaMethod::New => {
+                match req_captcha_new(c) {
+                    Ok(details) => {
+                        info!("Created new CAPTCHA [{}].", details.uuid());
+                        res.headers_mut().set(
+                            ContentType(Mime(TopLevel::Application, SubLevel::Json, vec![(Attr::Charset, Value::Utf8)]))
+                        );
+                        res.send(details.as_json().as_str());
+                    },
+                    Err(e) => {
+                        error!("Failed to create new CAPTCHA [{:?}].", e);
+                        res.set_status(map_err(e))
+                    }
+                }
+            },
+            CaptchaMethod::Solution => {
+                match req_captcha_solution(c) {
+                    Ok(details) => {
+                        info!("Solution checked for [{}] [{}].", details.uuid(), details.csr().result());
+                        res.headers_mut().set(
+                            ContentType(Mime(TopLevel::Application, SubLevel::Json, vec![(Attr::Charset, Value::Utf8)]))
+                        );
+                        res.send(details.as_json().as_str());
+                    },
+                    Err(e) => {
+                        error!("Failed to check solution [{:?}].", e);
+                        res.set_status(map_err(e))
+                    }
+                }
+            }
         };
-        check(r, res);
     }
 }
 
@@ -42,30 +69,14 @@ fn map_err(e: CaptchaError) -> StatusCode {
     }
 }
 
-fn check(r: CaptchaResult, mut res: Response) {
-    match r {
-        Err(e) => {
-            error!(target: "requesthandler", "{:?}", e);
-            res.set_status(map_err(e));
-        }
-        Ok(s)  => {
-            info!(target: "requesthandler", "successfully created a CAPTCHA");
-            res.headers_mut().set(
-                ContentType(Mime(TopLevel::Application, SubLevel::Json, vec![(Attr::Charset, Value::Utf8)]))
-            );
-            res.send(s.as_str());
-        },
-    }
-}
-
 fn val(c: &Context, k: &str) -> Result<String, CaptchaError> {
     Ok(c.variables.get(k).ok_or(CaptchaError::InvalidParameters)?.to_string())
 }
 
-fn req_captcha_new(c: Context) -> CaptchaResult {
+fn req_captcha_new(c: Context) -> CaptchaNewResult {
     captcha_new(val(&c, "difficulty")?, val(&c, "max_tries")?, val(&c, "ttl")?)
 }
 
-fn req_captcha_solution(c: Context) -> CaptchaResult {
+fn req_captcha_solution(c: Context) -> CaptchaSolutionResult {
     captcha_solution(val(&c, "id")?, val(&c, "solution")?)
 }

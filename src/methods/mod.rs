@@ -7,7 +7,43 @@ use base64::encode;
 use serde_json;
 use time;
 
-pub type CaptchaResult = Result<String, CaptchaError>;
+pub type CaptchaNewResult = Result<CaptchaNewDetails, CaptchaError>;
+pub type CaptchaSolutionResult = Result<CaptchaSolutionDetails, CaptchaError>;
+
+pub struct CaptchaSolutionDetails {
+    json: String,
+    uuid: String,
+    csr: CaptchaSolutionResponse,
+}
+
+impl CaptchaSolutionDetails {
+    pub fn as_json(&self) -> String {
+        self.json.clone()
+    }
+
+    pub fn uuid(&self) -> String {
+        self.uuid.clone()
+    }
+
+    pub fn csr(&self) -> CaptchaSolutionResponse {
+        self.csr.clone()
+    }
+}
+
+pub struct CaptchaNewDetails {
+    json: String,
+    uuid: String,
+}
+
+impl CaptchaNewDetails {
+    pub fn as_json(&self) -> String {
+        self.json.clone()
+    }
+
+    pub fn uuid(&self) -> String {
+        self.uuid.clone()
+    }
+}
 
 #[derive(Debug)]
 pub enum CaptchaError {
@@ -20,7 +56,7 @@ pub enum CaptchaError {
     Unexpected
 }
 
-pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> CaptchaResult {
+pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> CaptchaNewResult {
 
     let d = validate_difficulty(difficulty)?;
     let x = validate_tries(max_tries)?;
@@ -34,7 +70,10 @@ pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> Captch
         png: encode(&png)
     };
 
-    let json = serde_json::to_string(&c).map_err(|_| CaptchaError::ToJson)?;
+    let captcha = CaptchaNewDetails {
+        json: serde_json::to_string(&c).map_err(|_| CaptchaError::ToJson)?,
+        uuid: uuid.clone()
+    };
 
     let item = build_item()
         .uuid(uuid)
@@ -44,20 +83,27 @@ pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> Captch
         .item()
         .map_err(|_| CaptchaError::Unexpected)?;
 
-    info!("new {:?}", item);
     Persistence::set(item)
-        .map(|_| json)
+        .map(|_| captcha)
         .map_err(|_| CaptchaError::Persist)
 }
 
-pub fn captcha_solution(id: String, solution: String) -> CaptchaResult {
+pub fn captcha_solution(id: String, solution: String) -> CaptchaSolutionResult {
 
     let i = validate_id(id)?;
     let s = validate_solution(solution)?;
 
-    Persistence::get(i.hyphenated().to_string())
+    let csr = Persistence::get(i.hyphenated().to_string())
         .map_err(persistence_error_mapping)
-        .and_then(|item| check(s, item))
+        .and_then(|item| check(s, item))?;
+
+    let json = serde_json::to_string(&csr).map_err(|_| CaptchaError::ToJson)?;
+
+    Ok(CaptchaSolutionDetails {
+        json: json,
+        uuid: i.hyphenated().to_string(),
+        csr: csr
+    })
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -86,17 +132,15 @@ fn check_solution(user_solution: String, item: Item) -> CaptchaSolutionResponse 
     }
 }
 
-fn check(user_solution: String, item: Item) -> CaptchaResult {
-    info!("tries: {} {}", user_solution, item.tries_left());
-    let r = match item.tries_left() {
+fn check(user_solution: String, item: Item) -> Result<CaptchaSolutionResponse, CaptchaError> {
+   Ok(match item.tries_left() {
         0 => CaptchaSolutionResponse::reject("too many trials", 0),
         _ => check_solution(user_solution, item)
-    };
-    Ok(serde_json::to_string(&r).map_err(|_| CaptchaError::ToJson)?)
+    })
 }
 
-#[derive(Serialize)]
-struct CaptchaSolutionResponse {
+#[derive(Serialize, Clone)]
+pub struct CaptchaSolutionResponse {
     result: String,
     reject_reason: String,
     trials_left: usize
@@ -117,6 +161,10 @@ impl CaptchaSolutionResponse {
             reject_reason: String::new(),
             trials_left: 0
         }
+    }
+
+    pub fn result(&self) -> String {
+        self.result.clone()
     }
 }
 

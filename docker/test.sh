@@ -6,77 +6,101 @@ export PATH=../target/redis-3.2.9/src/:$PATH
 
 ADDR="http://localhost:8080"
 
-# check that endpoint "/" returns 404
-n=$(curl -s -i $ADDR | grep "404 Not Found" | wc -l)
-[ $n -eq 1 ] && echo "ok" || echo "failed"
+function ok {
+    printf "%-40s [\033[0;32mok\033[0m]\n" "$@"
+}
 
-# check that GET does not work to get a new CAPTCHA
+function err {
+    printf "%-40s [\033[0;31merr\033[0m]\n" "$@"
+}
+
+# test cases
+# 1) check that GET on endpoint / returns 404
+# 2) check that GET to get a new CAPTCHA does not work (returns 404)
+# 3) check that POST to get a new CAPTCHA does work
+#    a) returns 200
+#    b) returned id has length 36
+#    c) uuid in redis is requal to id returned
+#    d) number of tries_left in returned JSON is 3
+#    e)
+
+echo -e "\033[0;35mrunning some tests ...\033[0m"
+
+# 1) check that endpoint "/" returns 404
+n=$(curl -s -i $ADDR | grep "404 Not Found" | wc -l)
+[ $n -eq 1 ] && ok "endpoint /" || err "endpoint /"
+
+# 2) check that GET does not work to get a new CAPTCHA
 n=$(curl -s -i $ADDR/new/easy/3/10 | grep "404 Not Found" | wc -l)
-[ $n -eq 1 ] && echo "ok" || echo "failed"
+[ $n -eq 1 ] && ok "GET /new/..." || echo "GET /new/..."
 
 # ---------------------------------------------------------------------------------------
 
-# get a new CAPTCHA
+# 3a) get a new CAPTCHA
 t=$(mktemp)
 n=$(curl -s -i -XPOST $ADDR/new/easy/3/30 > $t)
-[ `cat $t | grep "200 OK" | wc -l` -eq 1 ] && echo "status code ok" || echo "failed"
+[ `cat $t | grep "200 OK" | wc -l` -eq 1 ] && ok "POST /new/..." || err "POST /new/..."
 
-## check length of returned id (must be 36)
+## 3b) check length of returned id (must be 36)
 id=`cat $t | tail -n1 | jq -r .id`
 n=`echo -n $id | wc -c`
-[ $n -eq 36 ] && echo "id check ok" || echo "failed"
+[ $n -eq 36 ] && ok "check id" || err "check id"
 
-## check uuid and number of tries left in redis
+## 3c) check uuid and number of tries left in redis
 json=`redis-cli --raw get X1:$id`
-echo $json
-# TODO DENIED Redis is running in protected mode because protected mode is enabled,  ....
 uuid=`echo -n $json | jq -r .uuid`
-[ "$uuid" == "$id" ] && echo "id equal ok" || echo "failed"
+[ "$uuid" == "$id" ] && ok "id equal" || echo "id equal"
+## 3d)
 tries=`echo -n $json | jq -r .tries_left`
-[ $tries -eq 3 ] && echo "tries ok" || echo "failed"
+[ $tries -eq 3 ] && ok "tries" || err "tries"
 
-## 1st attempt
+## 3e) 1st attempt
 t=$(mktemp)
-n=$(curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t)
+curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t
 result=`cat $t | tail -n1 | jq -r .result`
 reason=`cat $t | tail -n1 | jq -r .reject_reason`
-[ "$result" == "rejected" ] && echo "rejected ok" || echo "failed"
-[ "$reason" == "incorrect solution" ] && echo "reason ok" || echo "failed"
+[ "$result" == "rejected" ] && ok "1st attempt rejected" || err "1st attempt rejected"
+[ "$reason" == "incorrect solution" ] && ok "1st attempt reason (incorrect)" || err "1st attempt reason (incorrect)"
 
 ## 2nd attempt
-n=$(curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t)
+curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t
 result=`cat $t | tail -n1 | jq -r .result`
 reason=`cat $t | tail -n1 | jq -r .reject_reason`
-[ "$result" == "rejected" ] && echo "rejected ok" || echo "failed"
-[ "$reason" == "incorrect solution" ] && echo "reason ok" || echo "failed"
+[ "$result" == "rejected" ] && ok "2nd attempt rejected" || err "2nd attempt rejected"
+[ "$reason" == "incorrect solution" ] && ok "2nd attempt reason (incorrect)" || err "2nd attempt reason (incorrect)"
 
 ## 3rd attempt
-n=$(curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t)
+curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t
 result=`cat $t | tail -n1 | jq -r .result`
 reason=`cat $t | tail -n1 | jq -r .reject_reason`
-[ "$result" == "rejected" ] && echo "rejected ok" || echo "failed"
-[ "$reason" == "incorrect solution" ] && echo "reason ok" || echo "failed"
+[ "$result" == "rejected" ] && ok "3rd attempt rejected" || err "3rd attempt rejected"
+[ "$reason" == "incorrect solution" ] && ok "3rd attempt reason (incorrect)" || err "3rd attempt reason (incorrect)"
 
 ## 4th attempt
-n=$(curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t)
+curl -s -i -XPOST $ADDR/solution/$uuid/1111111111 > $t
 result=`cat $t | tail -n1 | jq -r .result`
 reason=`cat $t | tail -n1 | jq -r .reject_reason`
-[ "$result" == "rejected" ] && echo "rejected ok" || echo "failed"
-[ "$reason" == "too many trials" ] && echo "reason ok" || echo "failed: $reason"
+[ "$result" == "rejected" ] && ok "4th attempt rejected" || err "4th attempt rejected"
+[ "$reason" == "too many trials" ] && ok "4th attempt reason (too many trials)" || err "4th attempt reason (too many trials)"
 
 # ---------------------------------------------------------------------------------------
 
 # get a new CAPTCHA
 t=$(mktemp)
-n=$(curl -s -i -XPOST $ADDR/new/easy/3/30 > $t)
-[ `cat $t | grep "200 OK" | wc -l` -eq 1 ] && echo "status code ok" || echo "failed"
+curl -s -i -XPOST $ADDR/new/easy/3/30 > $t
+[ `cat $t | grep "200 OK" | wc -l` -eq 1 ] && ok "new captcha status code" || err "new captcha status code"
 uuid=`cat $t | tail -n1 | jq -r .id`
 json=`redis-cli --raw get X1:$uuid`
 solution=`echo -n $json | jq -r .solution`
 
+## check that solution is accepted
 t=$(mktemp)
-n=$(curl -s -i -XPOST $ADDR/solution/$uuid/$solution > $t)
+curl -s -i -XPOST $ADDR/solution/$uuid/$solution > $t
 result=`cat $t | tail -n1 | jq -r .result`
-[ "$result" == "accepted" ] && echo "accepted ok" || echo "failed: $result, $uuid, $solution"
+[ "$result" == "accepted" ] && ok "correct solution accepted" || err "correct solution accepted"
 
-# TODO check that it does not work again
+## check that solution is rejected
+curl -s -i -XPOST $ADDR/solution/$uuid/$solution > $t
+n=`cat $t | grep "404 Not Found" | wc -l`
+[ $n -eq 1 ] && ok "correct solution valid only once" || err "correct solution valid only once"
+

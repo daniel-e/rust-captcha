@@ -31,7 +31,7 @@ fn main() {
         return;
     }
 
-    info!("Starting server on port {} ...", PORT);
+    info!("Starting service on port {} ...", PORT);
 
     let ret = Server {
         handlers: insert_routes! {
