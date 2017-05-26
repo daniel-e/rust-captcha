@@ -2,6 +2,3 @@
 dump.rdb
 target
 Cargo.lock
-magickwand/example
-magickwand/image.o
-magickwand/libimage.a

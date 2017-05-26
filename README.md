@@ -12,6 +12,8 @@ The CAPTCHAs look similar to the following ones:
 
 ## Running
 
+There are two ways how you can run the service.
+
 ### In Docker
 
 ```bash
@@ -20,7 +22,9 @@ make build    # needs to be executed for the first time only
 make run
 ```
 
-### Via Cargo
+### From sources
+
+Requires: [Rust](https://www.rust-lang.org) and a running [Redis](https://redis.io/) instance.
 
 ```bash
 export RUST_LOG=rust_captcha=info
@@ -30,6 +34,8 @@ git clone https://github.com/daniel-e/rust-captcha.git
 cd rust-captcha
 cargo run --release
 ```
+
+The service is listening on port 8080 for incoming requests.
 
 # Interface
 
@@ -54,7 +60,7 @@ curl -s -i -XPOST -H "X-Client-ID: myclient" http://localhost:8080/new/<d>/<n>/<
 On success "200 OK" is returned and the body of the response contains the
 following JSON:
 
-```json
+```
 {
     "id": "75e41e21-e7be-4d6f-af1b-ce8f052dda7e"
     "png": "iVBORw0KGgoAAAANSUhEUgAAAN0AAAB5CAAAAACYIns+AAA..."
@@ -85,7 +91,7 @@ curl -s -i -H 'X-CLIENT-ID: myclient' -XPOST http://localhost/solution/<id>/<sol
 If the service was able to process the request "200 OK" is returned and the body of the response contains the
 following JSON:
 
-```json
+```
 {
     "result": "accepted" | "rejected",
     "reject_reason": "too many trials" | "incorrect solution" | "",

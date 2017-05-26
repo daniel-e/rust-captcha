@@ -1,3 +1,6 @@
+rebuild:
+	docker build -f Dockerfile --no-cache=true -t captcha/1 .
+
 build:
 	docker build -f Dockerfile --no-cache=false -t captcha/1 .
 

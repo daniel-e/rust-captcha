@@ -1,0 +1,8 @@
+- README.md etwas verschönern
+- Anbindung an Grafana
+- im Hintergrund CAPTCHAs vorgenerieren für die verschiedenen Kategorien
+- CAPTCHA library um weitere CAPTCHAs (Filter) erweitern
+- "build pass" verwenden (travis.yml)
+- Werbung machen
+  - wo kann man auf github connections aufbauen
+- Audio
