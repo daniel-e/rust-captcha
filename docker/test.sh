@@ -24,7 +24,7 @@ function err {
 #    d) number of tries_left in returned JSON is 3
 #    e)
 
-echo -e "\033[0;35mrunning some tests ...\033[0m"
+echo -e "\033[0;35mRunning some tests ...\033[0m"
 
 # 1) check that endpoint "/" returns 404
 n=$(curl -s -i $ADDR | grep "404 Not Found" | wc -l)

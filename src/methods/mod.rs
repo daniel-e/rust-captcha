@@ -166,6 +166,10 @@ impl CaptchaSolutionResponse {
     pub fn result(&self) -> String {
         self.result.clone()
     }
+
+    pub fn reason(&self) -> String {
+        self.reject_reason.clone()
+    }
 }
 
 #[derive(Serialize)]

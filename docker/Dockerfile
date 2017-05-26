@@ -12,7 +12,9 @@ RUN apt-get -y install libssl-dev
 
 RUN addgroup --gid 1000 dev
 RUN useradd -m dev --gid 1000 --uid 1000
+
 ADD run.sh /home/dev/
+ADD test.sh /home/dev/
 
 WORKDIR /tmp/
 
