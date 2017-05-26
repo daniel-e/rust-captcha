@@ -1,20 +1,22 @@
 #!/bin/bash
 
-redis-server &
+echo -e "\033[0;35mStarting Redis ...\033[0m"
+
+redis-server /etc/redis/redis.conf
+sleep 1
 
 until nc -z localhost 6379; do
         echo "Redis not ready yet. Waiting..."
         sleep 1
 done
 
-echo
-echo
-echo "\033[0;35mStarting CAPTCHA service ...\033[0m"
+echo -e "\033[0;35mStarting CAPTCHA service ...\033[0m"
 
 export RUST_LOG=rust_captcha=info
 export REDIS_HOST=localhost
 
-/home/dev/rust-captcha &
+/home/dev/rust-captcha | grep -v "clientid [testing]" &
+sleep 1
 
 until nc -z localhost 8080; do
         echo "CAPTCHA service not ready yet. Waiting..."
@@ -23,10 +25,10 @@ done
 
 ./test.sh
 
-if [ $? -nq 0 ]; then
-    echo "\033[0;31mError.\033[0m"
+if [ $? -ne 0 ]; then
+    echo -e "\033[0;31mError.\033[0m"
     exit 1
 else
-    echo "\033[0;32mReady.\033[0m"
-    wait
+    echo -e "\033[0;32mReady.\033[0m"
+    while true; do sleep 10; done
 fi

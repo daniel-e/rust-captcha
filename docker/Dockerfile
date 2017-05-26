@@ -8,10 +8,16 @@ RUN apt-get clean
 RUN apt-get autoremove
 
 RUN apt-get -y install git curl redis-server build-essential
-RUN apt-get -y install libssl-dev
+RUN apt-get -y install libssl-dev netcat jq
 
 RUN addgroup --gid 1000 dev
 RUN useradd -m dev --gid 1000 --uid 1000
+
+# Configure Redis
+# 1) appendonly no  (by default; does not need to be changed)
+# 2) disable RDB snapshotting
+RUN sed -i s/^save/#save/g /etc/redis/redis.conf
+RUN echo 'save ""' >> /etc/redis/redis.conf
 
 ADD run.sh /home/dev/
 ADD test.sh /home/dev/
