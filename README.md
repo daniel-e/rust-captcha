@@ -37,6 +37,9 @@ cargo run --release
 
 The service is listening on port 8080 for incoming requests.
 
+If you don't have Redis already running type `make redis` in another console in the same directory. This command
+will compile and execute Redis in the `target` directory.
+
 # Interface
 
 The service provides an API to create a new CAPTCHA and to check the

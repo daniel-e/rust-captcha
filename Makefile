@@ -1,5 +1,5 @@
 redis: target/redis-3.2.9/src/redis_server
-	target/redis-3.2.9/src/redis-server
+	target/redis-3.2.9/src/redis-server --save ""
 
 target/redis-3.2.9/src/redis_server: Makefile
 	mkdir -p target && \
