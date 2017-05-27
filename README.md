@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/daniel-e/rust-captcha.svg?branch=master)](https://travis-ci.org/daniel-e/rust-captcha)
+
 # RESTful CAPTCHA Service
 
 A RESTful CAPTCHA service written in Rust. The service generates CAPTCHAs
