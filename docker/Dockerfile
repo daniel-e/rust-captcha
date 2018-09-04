@@ -1,4 +1,4 @@
-FROM ubuntu:17.04
+FROM ubuntu:17.10
 
 RUN apt-get update
 RUN apt-get -f install
@@ -35,4 +35,6 @@ RUN chmod a+r /etc/redis/redis.conf
 ADD run.sh /home/dev/
 ADD test.sh /home/dev/
 
-CMD ["su", "-", "-c", "/home/dev/run.sh", "dev"]
+# Launch Redis as a super user
+# then popup bash as "dev" user
+ENTRYPOINT /usr/bin/redis-server /etc/redis/redis.conf && su - -c /home/dev/run.sh dev
