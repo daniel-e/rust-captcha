@@ -2,7 +2,6 @@
 
 echo -e "\033[0;35mStarting Redis ...\033[0m"
 
-redis-server /etc/redis/redis.conf
 sleep 1
 
 until nc -z localhost 6379; do

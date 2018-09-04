@@ -35,4 +35,6 @@ RUN chmod a+r /etc/redis/redis.conf
 ADD run.sh /home/dev/
 ADD test.sh /home/dev/
 
-CMD ["su", "-", "-c", "/home/dev/run.sh", "dev"]
+# Launch Redis as a super user
+# then popup bash as "dev" user
+ENTRYPOINT /usr/bin/redis-server /etc/redis/redis.conf && su - -c /home/dev/run.sh dev
