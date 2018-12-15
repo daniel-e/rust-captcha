@@ -2,7 +2,7 @@ use captcha::{Difficulty, gen};
 use validation::*;
 use persistence::{Persistence, Item, Error, build_item};
 
-use uuid::{Uuid, UuidVersion};
+use uuid::Uuid;
 use base64::encode;
 use serde_json;
 use time;
@@ -93,7 +93,7 @@ pub fn captcha_solution(id: String, solution: String) -> CaptchaSolutionResult {
     let i = validate_id(id)?;
     let s = validate_solution(solution)?;
 
-    let csr = Persistence::get(i.hyphenated().to_string())
+    let csr = Persistence::get(i.to_hyphenated().to_string())
         .map_err(persistence_error_mapping)
         .and_then(|item| check(s, item))?;
 
@@ -101,7 +101,7 @@ pub fn captcha_solution(id: String, solution: String) -> CaptchaSolutionResult {
 
     Ok(CaptchaSolutionDetails {
         json: json,
-        uuid: i.hyphenated().to_string(),
+        uuid: i.to_hyphenated().to_string(),
         csr: csr
     })
 }
@@ -179,7 +179,7 @@ struct NewCaptchaResponse {
 }
 
 fn create_uuid() -> Result<String, CaptchaError> {
-    Uuid::new(UuidVersion::Random).map(|x| x.hyphenated().to_string()).ok_or(CaptchaError::Uuid)
+    Ok(Uuid::new_v4().to_hyphenated().to_string())
 }
 
 fn create_captcha(d: Difficulty) -> Result<(String, Vec<u8>), CaptchaError> {

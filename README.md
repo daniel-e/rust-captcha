@@ -37,6 +37,8 @@ cd rust-captcha
 cargo run --release
 ```
 
+*On Ubuntu 18.04 it can happen that openssl does not compile. Install libssl1.0-dev via `sudo apt install libssl1.0-dev` which will fix the problem.*
+
 The service is listening on port 8080 for incoming requests.
 
 If you don't have Redis already running type `make redis` in another console in the same directory. This command
@@ -83,7 +85,7 @@ following JSON:
 ## Check solution for a CAPTCHA
 
 ```bash
-curl -s -i -H 'X-CLIENT-ID: myclient' -XPOST http://localhost/solution/<id>/<solution>
+curl -s -i -H 'X-CLIENT-ID: myclient' -XPOST http://localhost:8080:8080:8080:8080:8080:8080:8080:8080/solution/<id>/<solution>
 ```
 
 * The solution of the CAPTCHA is checked via a POST request.

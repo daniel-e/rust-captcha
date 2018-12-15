@@ -24,7 +24,7 @@ fn precondition_checks() -> bool {
 }
 
 fn main() {
-    env_logger::init().expect("initializing logger failed");
+    env_logger::init();
 
     if !precondition_checks() {
         error!("Failed to start server.");
