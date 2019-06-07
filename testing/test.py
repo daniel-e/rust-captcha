@@ -2,10 +2,11 @@
 import time
 import urllib
 import urllib.request
+import sys
 from multiprocessing import Process
 
 n = 1000
-k = 4
+k = int(sys.argv[1])
 
 def send_req():
     req = urllib.request.Request('http://localhost:8080/new/easy/3/100', data=b"")
@@ -36,7 +37,7 @@ def main():
         print("process done")
     t2 = time.time()
     print("done")
-    print("{} captchas in {} seconds = {} captchas/s".format(n * k, t2 - t1, n * k / (t2 - t1)))
+    print("{} threads, {} captchas in {} seconds = {} captchas/s".format(k, n * k, t2 - t1, n * k / (t2 - t1)))
 
 
 if __name__ == "__main__":
