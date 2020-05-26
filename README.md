@@ -14,9 +14,9 @@ The CAPTCHAs look similar to the following ones:
 
 ## Libssl issues
 
-**Currently, the CAPTCHA service depends on the Rustful library. Unfortunately, this library does not receive updates anymore. As Rustful depends on an old libssl library, you might run into problems when compiling the CAPTCHA service. I plan to replace the Rustful library by the Rocket framework. I will be done as soon as Rocket 0.5 has been released. This will also fix the libssl issue.**
+**Currently, the CAPTCHA service depends on the Rustful library. Unfortunately, this library does not receive updates anymore. As Rustful depends on an old libssl library, you might run into problems when compiling the CAPTCHA service. I plan to replace the Rustful library by the Rocket framework. I will do this as soon as Rocket 0.5 has been released. This will also fix the libssl issue.**
 
-**As long as this is not done, I recommend to run the CAPTCHA service in the docker container. The docker container uses Ubuntu 18.04 with the correct ssl library.**
+**As long as the CAPTCHA service depends on Rustful, I recommend to run the CAPTCHA service in the docker container. The docker container uses Ubuntu 18.04 with the correct ssl library.**
 
 ## Running
 
