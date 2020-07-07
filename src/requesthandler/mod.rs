@@ -1,10 +1,11 @@
 use rustful::{Handler, Context, Response, StatusCode};
-use methods::{CaptchaError, captcha_new, captcha_solution};
+use methods::{CaptchaError, captcha_new, captcha_solution, captcha_newget};
 use rustful::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
 pub enum CaptchaMethod {
     New,
+    NewGet,
     Solution
 }
 
@@ -24,6 +25,7 @@ impl Handler for RequestHandler {
     fn handle_request(&self, c: Context, mut res: Response) {
         let r = match self.method {
             CaptchaMethod::New      => req_captcha_new(c),
+            CaptchaMethod::NewGet   => req_captcha_newget(c),
             CaptchaMethod::Solution => req_captcha_solution(c)
         };
         match r {
@@ -63,6 +65,23 @@ fn client_id(c: &Context) -> String {
      .chars()
      .filter(|c| !c.is_control())
      .collect()
+}
+
+fn req_captcha_newget(c: Context) -> Result<String, CaptchaError> {
+    let clientid = client_id(&c);
+    match captcha_newget(val(&c, "difficulty")?) {
+        Ok(details) => {
+            info!("Created new CAPTCHA [{}], clientid [{}].", details.uuid(), clientid);
+            Ok(details.as_json())
+        },
+        Err(e)      => {
+            match e {
+                CaptchaError::NotFound | CaptchaError::InvalidParameters => info!("Failed to create new CAPTCHA [{:?}], clientid [{}].", e, clientid),
+                _ => error!("Failed to create new CAPTCHA [{:?}], clientid [{}].", e, clientid)
+            }
+            Err(e)
+        }
+    }
 }
 
 fn req_captcha_new(c: Context) -> Result<String, CaptchaError> {

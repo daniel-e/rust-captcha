@@ -55,6 +55,40 @@ will compile and execute Redis in the `target` directory.
 The service provides an API to create a new CAPTCHA and to check the
 solution of a CAPTCHA.
 
+## Create new CAPTCHA Without Persisting the CAPTCHA
+
+With the following cURL a new CAPTCHA is created.
+```bash
+curl -s -i -XGET -H "X-Client-ID: myclient" http://localhost:8080/new/<d>
+```
+
+* A new CAPTCHA is created via a POST request.
+* The header `X-Client-ID` is optional. It can be used to separate different clients using the same service instance when analyzing the service's logfile.
+* `<d>`: The difficulty. Valid values are `easy`, `medium`, `hard`
+
+**Response**
+
+On success "200 OK" is returned and the body of the response contains the
+following JSON:
+
+```
+{
+    "id": "75e41e21-e7be-4d6f-af1b-ce8f052dda7e"
+    "png": "iVBORw0KGgoAAAANSUhEUgAAAN0AAAB5CAAAAACYIns+AAA..."
+    "solution": "g7we8"
+}
+```
+
+* `id`: The id of the CAPTCHA.
+* `png`: The raw PNG image data encoded as base64.
+* `solution`: The solution.
+
+**Errors**
+
+* 500 Internal Server Error: internal error (e.g. no connection to Redis)
+* 400 Bad Request: invalid parameters
+
+
 ## Create new CAPTCHA
 
 With the following cURL a new CAPTCHA is created.
@@ -77,11 +111,13 @@ following JSON:
 {
     "id": "75e41e21-e7be-4d6f-af1b-ce8f052dda7e"
     "png": "iVBORw0KGgoAAAANSUhEUgAAAN0AAAB5CAAAAACYIns+AAA..."
+    "solution": "g7we8"
 }
 ```
 
 * `id`: The id of the CAPTCHA.
 * `png`: The raw PNG image data encoded as base64.
+* `solution`: The solution.
 
 **Errors**
 
@@ -89,6 +125,7 @@ following JSON:
 * 400 Bad Request: invalid parameters
 
 ## Check solution for a CAPTCHA
+_(only for CAPTCHAs created via a POST request to the /new endpoint)_
 
 ```bash
 curl -s -i -H 'X-CLIENT-ID: myclient' -XPOST http://localhost:8080:8080:8080:8080:8080:8080:8080:8080/solution/<id>/<solution>

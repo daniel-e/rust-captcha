@@ -37,6 +37,7 @@ fn main() {
         handlers: insert_routes! {
             TreeRouter::new() => {
                 "/new/:difficulty/:max_tries/:ttl" => Post: RequestHandler::new(CaptchaMethod::New),
+                "/new/:difficulty"                 => Get:  RequestHandler::new(CaptchaMethod::NewGet),
                 "/solution/:id/:solution"          => Post: RequestHandler::new(CaptchaMethod::Solution)
             }
         },
@@ -46,6 +47,6 @@ fn main() {
 
     match ret {
         Ok(_)  => { },
-        Err(e) => error!("Could not start server: {}", e.description())
+        Err(e) => error!("Could not start server: {}", e.to_string())
     }
 }

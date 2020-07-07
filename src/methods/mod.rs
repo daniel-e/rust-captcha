@@ -56,6 +56,28 @@ pub enum CaptchaError {
     Unexpected
 }
 
+pub fn captcha_newget(difficulty: String) -> CaptchaNewResult {
+    // TODO this code is in parts duplicated from captcha_new
+
+    let d = validate_difficulty(difficulty)?;
+
+    let uuid = create_uuid()?;
+    let (solution, png) = create_captcha(d)?;
+
+    let c = NewCaptchaResponse {
+        id: uuid.clone(),
+        png: encode(&png),
+        solution: solution.clone(),
+    };
+
+    let captcha = CaptchaNewDetails {
+        json: serde_json::to_string(&c).map_err(|_| CaptchaError::ToJson)?,
+        uuid: uuid.clone(),
+    };
+
+    Ok(captcha)
+}
+
 pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> CaptchaNewResult {
 
     let d = validate_difficulty(difficulty)?;
@@ -67,12 +89,13 @@ pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> Captch
 
     let c = NewCaptchaResponse {
         id: uuid.clone(),
-        png: encode(&png)
+        png: encode(&png),
+        solution: solution.clone(),
     };
 
     let captcha = CaptchaNewDetails {
         json: serde_json::to_string(&c).map_err(|_| CaptchaError::ToJson)?,
-        uuid: uuid.clone()
+        uuid: uuid.clone(),
     };
 
     let item = build_item()
@@ -175,7 +198,8 @@ impl CaptchaSolutionResponse {
 #[derive(Serialize)]
 struct NewCaptchaResponse {
     id: String,
-    png: String
+    png: String,
+    solution: String,
 }
 
 fn create_uuid() -> Result<String, CaptchaError> {

@@ -1,6 +1,6 @@
 [package]
 name = "rust-captcha"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["daniele <git.daniele@gmail.com>"]
 
 [dependencies]

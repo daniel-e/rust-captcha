@@ -1,0 +1,3 @@
+0.0.2
+- when a new CAPTCHA is created the solution is returned in answer
+- new endpoint /new/<difficulty> to create a CAPTCHA that is not persisted
