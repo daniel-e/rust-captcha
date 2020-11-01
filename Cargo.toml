@@ -1,18 +1,17 @@
 [package]
 name = "rust-captcha"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["daniele <git.daniele@gmail.com>"]
 
 [dependencies]
-log = "0.4.6"
-env_logger = "0.6.0"
-rustful = "0.9.0"
-base64 = "0.10.0"
-serde_json = "1.0.33"
-serde_derive = "1.0.82"
-serde = "1.0.82"
-redis = "0.9.1"
-hyper = "0.8.0"
-time = "0.1.41"
+rocket = "0.4.5"
+log = "0.4"
+env_logger = "0.8"
+base64 = "0.13"
+serde_json = "1.0"
+serde_derive = "1.0"
+serde = "1.0"
+redis = "0.17"
+time = "0.1"
 uuid = { version = "0.7.1", features = ["v4"] }
 captcha = { git = "https://github.com/daniel-e/captcha.git" }

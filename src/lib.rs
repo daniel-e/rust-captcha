@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate log;
-extern crate rustful;
 extern crate captcha;
 extern crate uuid;
 extern crate base64;
@@ -9,7 +8,6 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate serde;
 extern crate redis;
-extern crate hyper;
 extern crate time;
 
 pub mod methods;

@@ -27,7 +27,7 @@ impl Persistence {
     }
 
     pub fn del<T: ToString>(uuid: T) {
-        connect().ok().and_then(|c| c.del::<String, Option<String>>(key(uuid.to_string())).ok());
+        connect().ok().and_then(|mut c| c.del::<String, Option<String>>(key(uuid.to_string())).ok());
     }
 }
 
