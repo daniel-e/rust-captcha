@@ -61,7 +61,7 @@ pub fn captcha_newget(difficulty: String) -> CaptchaNewResult {
 
     let d = validate_difficulty(difficulty)?;
 
-    let uuid = create_uuid()?;
+    let uuid = create_uuid();
     let (solution, png) = create_captcha(d)?;
 
     let c = NewCaptchaResponse {
@@ -84,7 +84,7 @@ pub fn captcha_new(difficulty: String, max_tries: String, ttl: String) -> Captch
     let x = validate_tries(max_tries)?;
     let t = validate_ttl(ttl)?;
 
-    let uuid = create_uuid()?;
+    let uuid = create_uuid();
     let (solution, png) = create_captcha(d)?;
 
     let c = NewCaptchaResponse {
@@ -202,8 +202,8 @@ struct NewCaptchaResponse {
     solution: String,
 }
 
-fn create_uuid() -> Result<String, CaptchaError> {
-    Ok(Uuid::new_v4().to_hyphenated().to_string())
+fn create_uuid() -> String {
+    Uuid::new_v4().to_hyphenated().to_string()
 }
 
 fn create_captcha(d: Difficulty) -> Result<(String, Vec<u8>), CaptchaError> {

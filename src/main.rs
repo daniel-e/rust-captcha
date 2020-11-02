@@ -25,30 +25,54 @@ fn precondition_checks() -> bool {
     }
 }
 
+#[derive(Clone)]
+enum CResult {
+    Processed = 0,
+    InternalError = 1,
+    InvalidParameters = 2
+}
+
+fn error(code: CResult) -> Value {
+    let result_str = vec!["processed", "internal error", "invalid parameters"];
+    json!({
+        "code": code.clone() as u32,
+        "msg": result_str[code as usize],
+        "result": ""
+    })
+}
+
+fn not_found(code: CResult) -> Value {
+    let result_str = vec!["processed", "internal error", "invalid parameters"];
+    json!({
+        "code": code.clone() as u32,
+        "msg": result_str[code as usize],
+        "result": json!({
+            "solution": "not found",
+            "reject_reason": "",
+            "trials_left": 0
+        })
+    })
+}
+
 fn create_response(r: Result<String, CaptchaError>) -> content::Json<String> {
-    let msg = vec!["OK", "Bad request", "Internal error", "Not found"];
+    let result_str = vec!["processed", "internal error", "invalid parameters"];
     let ret = match r {
         Err(e) => {
-            let code = match e {
-                CaptchaError::InvalidParameters => 1,
-                CaptchaError::CaptchaGeneration => 2,
-                CaptchaError::Uuid => 2,
-                CaptchaError::ToJson => 2,
-                CaptchaError::Persist => 2,
-                CaptchaError::NotFound => 3,
-                CaptchaError::Unexpected => 2
-            };
-            json!({
-                "code": code,
-                "msg": msg[code],
-                "result": ""
-            })
+            match e {
+                CaptchaError::InvalidParameters => error(CResult::InvalidParameters),
+                CaptchaError::CaptchaGeneration => error(CResult::InternalError),
+                CaptchaError::Uuid => error(CResult::InternalError),
+                CaptchaError::ToJson => error(CResult::InternalError),
+                CaptchaError::Persist => error(CResult::InternalError),
+                CaptchaError::NotFound => not_found(CResult::Processed),
+                CaptchaError::Unexpected => error(CResult::InternalError)
+            }
         },
         Ok(json) => {
             let data: Value = serde_json::from_str(&json).unwrap();
             json!({
-                "code": 0,
-                "msg": msg[0],
+                "code": CResult::Processed as u32,
+                "msg": result_str[CResult::Processed as usize],
                 "result": data
             })
         }
