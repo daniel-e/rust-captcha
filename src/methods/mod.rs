@@ -151,7 +151,7 @@ fn check_solution(user_solution: String, item: Item) -> CaptchaSolutionResponse 
         } else {
             Persistence::del(item.uuid());
         };
-        CaptchaSolutionResponse::reject("incorrect solution", item.tries_left() - 1)
+        CaptchaSolutionResponse::reject("incorrect", item.tries_left() - 1)
     }
 }
 
@@ -164,34 +164,27 @@ fn check(user_solution: String, item: Item) -> Result<CaptchaSolutionResponse, C
 
 #[derive(Serialize, Clone)]
 pub struct CaptchaSolutionResponse {
-    result: String,
-    reject_reason: String,
+    solution: String,
     trials_left: usize
 }
 
 impl CaptchaSolutionResponse {
     pub fn reject(reason: &str, trials_left: usize) -> CaptchaSolutionResponse {
         CaptchaSolutionResponse {
-            result: String::from("rejected"),
-            reject_reason: reason.to_string(),
-            trials_left: trials_left
+            solution: String::from(reason),
+            trials_left
         }
     }
 
     pub fn accept() -> CaptchaSolutionResponse {
         CaptchaSolutionResponse {
-            result: String::from("accepted"),
-            reject_reason: String::new(),
+            solution: String::from("accepted"),
             trials_left: 0
         }
     }
 
     pub fn result(&self) -> String {
-        self.result.clone()
-    }
-
-    pub fn reason(&self) -> String {
-        self.reject_reason.clone()
+        self.solution.clone()
     }
 }
 

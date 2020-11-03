@@ -6,7 +6,7 @@ pub fn req_captcha_newget(difficulty: String, clientid: String) -> Result<String
             info!("Created new CAPTCHA [{}], clientid [{}].", details.uuid(), clientid);
             Ok(details.as_json())
         },
-        Err(e)      => {
+        Err(e) => {
             match e {
                 CaptchaError::NotFound | CaptchaError::InvalidParameters => info!("Failed to create new CAPTCHA [{:?}], clientid [{}].", e, clientid),
                 _ => error!("Failed to create new CAPTCHA [{:?}], clientid [{}].", e, clientid)
@@ -22,7 +22,7 @@ pub fn req_captcha_new(difficulty: String, max_tries: String, ttl: String, clien
             info!("Created new CAPTCHA [{}], clientid [{}].", details.uuid(), clientid);
             Ok(details.as_json())
         },
-        Err(e)      => {
+        Err(e) => {
             match e {
                 CaptchaError::NotFound | CaptchaError::InvalidParameters => info!("Failed to create new CAPTCHA [{:?}], clientid [{}].", e, clientid),
                 _ => error!("Failed to create new CAPTCHA [{:?}], clientid [{}].", e, clientid)
@@ -35,10 +35,10 @@ pub fn req_captcha_new(difficulty: String, max_tries: String, ttl: String, clien
 pub fn req_captcha_solution(id: String, solution: String, clientid: String) -> Result<String, CaptchaError> {
     match captcha_solution(id, solution) {
         Ok(details) => {
-            info!("Solution checked for [{}] [{}] [{}], clientid [{}].", details.uuid(), details.csr().result(), details.csr().reason(), clientid);
+            info!("Solution checked for [{}] [{}], clientid [{}].", details.uuid(), details.csr().result(), clientid);
             Ok(details.as_json())
         },
-        Err(e)      => {
+        Err(e) => {
             match e {
                 CaptchaError::NotFound | CaptchaError::InvalidParameters => info!("Failed to check solution [{:?}], clientid [{}].", e, clientid),
                 _ => error!("Failed to check solution [{:?}], clientid [{}].", e, clientid)

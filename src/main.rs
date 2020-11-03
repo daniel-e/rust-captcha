@@ -60,8 +60,8 @@ enum CResult {
 fn error(code: CResult) -> Value {
     let result_str = vec!["processed", "internal error", "invalid parameters"];
     json!({
-        "code": code.clone() as u32,
-        "msg": result_str[code as usize],
+        "error_code": code.clone() as u32,
+        "error_msg": result_str[code as usize],
         "result": ""
     })
 }
@@ -69,11 +69,10 @@ fn error(code: CResult) -> Value {
 fn not_found(code: CResult) -> Value {
     let result_str = vec!["processed", "internal error", "invalid parameters"];
     json!({
-        "code": code.clone() as u32,
-        "msg": result_str[code as usize],
+        "error_code": code.clone() as u32,
+        "error_msg": result_str[code as usize],
         "result": json!({
             "solution": "not found",
-            "reject_reason": "",
             "trials_left": 0
         })
     })
@@ -96,8 +95,8 @@ fn create_response(r: Result<String, CaptchaError>) -> content::Json<String> {
         Ok(json) => {
             let data: Value = serde_json::from_str(&json).unwrap();
             json!({
-                "code": CResult::Processed as u32,
-                "msg": result_str[CResult::Processed as usize],
+                "error_code": CResult::Processed as u32,
+                "error_msg": result_str[CResult::Processed as usize],
                 "result": data
             })
         }

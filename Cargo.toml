@@ -1,6 +1,6 @@
 [package]
 name = "rust-captcha"
-version = "0.0.3"
+version = "0.1.0"
 authors = ["daniele <git.daniele@gmail.com>"]
 
 [dependencies]
@@ -13,5 +13,5 @@ serde_derive = "1.0"
 serde = "1.0"
 redis = "0.17"
 time = "0.1"
-uuid = { version = "0.7.1", features = ["v4"] }
+uuid = { version = "0.8.1", features = ["v4"] }
 captcha = { git = "https://github.com/daniel-e/captcha.git" }
