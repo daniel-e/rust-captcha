@@ -1,20 +1,6 @@
 use methods::{CaptchaError, captcha_new, captcha_solution, captcha_newget};
 
-fn client_id() -> String {
-    String::from("<unknown>")
-    // TODO ROCKET
-    /*
-    String::from_utf8(
-        c.headers.get_raw("x-client-id").unwrap_or(&[]).iter().next().unwrap_or(&u.clone().into_bytes()).clone()
-    ).ok()
-     .unwrap_or(u)
-     .chars()
-     .filter(|c| !c.is_control())
-     .collect()*/
-}
-
-pub fn req_captcha_newget(difficulty: String) -> Result<String, CaptchaError> {
-    let clientid = client_id(); // TODO ROCKET
+pub fn req_captcha_newget(difficulty: String, clientid: String) -> Result<String, CaptchaError> {
     match captcha_newget(difficulty) {
         Ok(details) => {
             info!("Created new CAPTCHA [{}], clientid [{}].", details.uuid(), clientid);
@@ -30,8 +16,7 @@ pub fn req_captcha_newget(difficulty: String) -> Result<String, CaptchaError> {
     }
 }
 
-pub fn req_captcha_new(difficulty: String, max_tries: String, ttl: String) -> Result<String, CaptchaError> {
-    let clientid = client_id(); // TODO ROCKET
+pub fn req_captcha_new(difficulty: String, max_tries: String, ttl: String, clientid: String) -> Result<String, CaptchaError> {
     match captcha_new(difficulty, max_tries, ttl) {
         Ok(details) => {
             info!("Created new CAPTCHA [{}], clientid [{}].", details.uuid(), clientid);
@@ -47,8 +32,7 @@ pub fn req_captcha_new(difficulty: String, max_tries: String, ttl: String) -> Re
     }
 }
 
-pub fn req_captcha_solution(id: String, solution: String) -> Result<String, CaptchaError> {
-    let clientid = client_id(); // TODO ROCKET
+pub fn req_captcha_solution(id: String, solution: String, clientid: String) -> Result<String, CaptchaError> {
     match captcha_solution(id, solution) {
         Ok(details) => {
             info!("Solution checked for [{}] [{}] [{}], clientid [{}].", details.uuid(), details.csr().result(), details.csr().reason(), clientid);

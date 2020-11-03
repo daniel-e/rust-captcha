@@ -12,6 +12,8 @@ use rust_captcha::requesthandler::{req_captcha_new, req_captcha_newget, req_capt
 use rust_captcha::methods::CaptchaError;
 use rocket::response::content;
 use serde_json::{json, Value};
+use rocket::request::FromRequest;
+use rocket::{Request, request};
 
 const PORT: u16 = 8000;
 
@@ -22,6 +24,29 @@ fn precondition_checks() -> bool {
             false
         },
         Ok(_)  => true
+    }
+}
+
+struct ClientId(String);
+
+#[derive(Debug)]
+struct ClientIdError;
+
+fn client_id(cid: ClientId) -> String { // TODO validate
+    match cid {
+        ClientId(val) => val
+    }
+}
+
+impl<'a, 'r> FromRequest<'a, 'r> for ClientId {
+    type Error = ClientIdError;
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
+        let client_ids: Vec<_> = request.headers().get("x-client-id").collect();
+        match client_ids.len() {
+            0 => request::Outcome::Success(ClientId(String::from("<unknown>"))),
+            _ => request::Outcome::Success(ClientId(client_ids[0].to_string()))
+        }
     }
 }
 
@@ -82,18 +107,18 @@ fn create_response(r: Result<String, CaptchaError>) -> content::Json<String> {
 }
 
 #[post("/new/<difficulty>/<max_tries>/<ttl>")]
-fn new(difficulty: String, max_tries: String, ttl: String) -> content::Json<String> {
-    create_response(req_captcha_new(difficulty, max_tries, ttl))
+fn new(difficulty: String, max_tries: String, ttl: String, clientid: ClientId) -> content::Json<String> {
+    create_response(req_captcha_new(difficulty, max_tries, ttl, client_id(clientid)))
 }
 
 #[get("/new/<difficulty>")]
-fn new_diff_only(difficulty: String) -> content::Json<String> {
-    create_response(req_captcha_newget(difficulty))
+fn new_diff_only(difficulty: String, clientid: ClientId) -> content::Json<String> {
+    create_response(req_captcha_newget(difficulty, client_id(clientid)))
 }
 
 #[post("/solution/<id>/<solution>")]
-fn solution(id: String, solution: String) -> content::Json<String> {
-    create_response(req_captcha_solution(id, solution))
+fn solution(id: String, solution: String, clientid: ClientId) -> content::Json<String> {
+    create_response(req_captcha_solution(id, solution, client_id(clientid)))
 }
 
 
