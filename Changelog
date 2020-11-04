@@ -1,4 +1,4 @@
-0.1.0
+1.0.0
 - switched to Rocket 4.5
 - restructured JSON responses
 - updated dependencies including Redis
