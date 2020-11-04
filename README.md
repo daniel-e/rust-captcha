@@ -28,10 +28,15 @@ make run
 
 ### From sources
 
-Requires [Rust](https://www.rust-lang.org) nightly and a running [Redis](https://redis.io/) instance.
+**Requirements**
 
-If you're using rustup, you can switch to Rust nightly by running `rustup default nightly`. Then, compile and run the CAPTCHA service as follows:
-  
+To build from sources, you require [Rust](https://www.rust-lang.org) nightly and a running [Redis](https://redis.io/) instance.
+
+* If you're using rustup, you can switch to Rust nightly by running `rustup default nightly`. Then, compile and run the CAPTCHA service as follows:
+* If you don't have Redis already running, execute `make redis`. This command will compile and execute Redis in the `target` directory. 
+
+**Build**
+
 ```bash
 export RUST_LOG=rust_captcha=info
 export REDIS_HOST=localhost
@@ -43,19 +48,16 @@ cargo run --release
 
 The service is listening on port 8080 for incoming requests.
 
-If you don't have Redis already running, execute `make redis`. This command will compile and execute Redis in
-the `target` directory.
+
 
 # Usage
 
-The service provides an API to create a new CAPTCHA and to check the solution of a CAPTCHA.
+The service provides an API to create new CAPTCHAs and to check the solution of a CAPTCHA.
 
 ## Create new CAPTCHA without persisting the CAPTCHA
 
-With the following curl command a new CAPTCHA is created that is not persisted in Redis:
-
 ```bash
-curl -s -i http://localhost:8080/new/<difficulty>
+curl -s -i http://localhost:8000/new/<difficulty>
 ```
 
 * `<difficulty>`: The difficulty. Valid values are `easy`, `medium`, `hard`.
@@ -88,9 +90,8 @@ Example of a successful request:
 
 ## Create new CAPTCHA that is persisted
 
-With the following curl command a new CAPTCHA is created that is persisted in Redis:
 ```bash
-curl -s -i -XPOST http://localhost:8080/new/<difficulty>/<max_tries>/<ttl>
+curl -s -i -XPOST http://localhost:8000/new/<difficulty>/<max_tries>/<ttl>
 ```
 
 * `<difficulty>`: The difficulty. Valid values are `easy`, `medium`, `hard`.
@@ -107,7 +108,7 @@ See request above.
 Solutions can only be checked for CAPTCHAs that have been created via a POST request.
 
 ```bash
-curl -s -i -XPOST http://localhost:8080/solution/<id>/<solution>
+curl -s -i -XPOST http://localhost:8000/solution/<id>/<solution>
 ```
 
 * `<id>`: The id of the CAPTCHA.

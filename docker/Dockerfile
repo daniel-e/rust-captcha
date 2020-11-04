@@ -9,7 +9,6 @@ RUN apt-get autoremove
 
 RUN apt-get -y install git curl redis-server build-essential
 RUN apt-get -y install netcat jq
-#libssl1.0-dev
 
 # Package not required but useful for debugging.
 RUN apt-get -y install net-tools telnet vim aptitude
@@ -23,9 +22,12 @@ WORKDIR /tmp/
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN PATH=/root/.cargo/bin/:$PATH rustup default nightly
 
+RUN apt-get -y install wget
 # install latest version of CAPTCHA service
-RUN git clone https://github.com/daniel-e/rust-captcha.git
-WORKDIR /tmp/rust-captcha
+RUN wget -q https://github.com/daniel-e/rust-captcha/archive/v1.0.0.tar.gz
+RUN tar xzf v1.0.0.tar.gz
+WORKDIR /tmp/rust-captcha-1.0.0
+
 RUN PATH=/root/.cargo/bin/:$PATH cargo build --release
 RUN cp target/release/rust-captcha /home/dev/
 
