@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.10
 
 RUN apt-get update
 RUN apt-get -f install
@@ -8,7 +8,8 @@ RUN apt-get clean
 RUN apt-get autoremove
 
 RUN apt-get -y install git curl redis-server build-essential
-RUN apt-get -y install netcat jq libssl1.0-dev
+RUN apt-get -y install netcat jq
+#libssl1.0-dev
 
 # Package not required but useful for debugging.
 RUN apt-get -y install net-tools telnet vim aptitude
@@ -18,8 +19,9 @@ RUN useradd -m dev --gid 1000 --uid 1000
 
 WORKDIR /tmp/
 
-# install latest version of Rust
-RUN curl https://sh.rustup.rs -sS -o install_rust.sh && chmod +x install_rust.sh && ./install_rust.sh -y
+# install latest version of Rust nightly
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN PATH=/root/.cargo/bin/:$PATH rustup default nightly
 
 # install latest version of CAPTCHA service
 RUN git clone https://github.com/daniel-e/rust-captcha.git
