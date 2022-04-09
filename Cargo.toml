@@ -4,14 +4,14 @@ version = "1.0.0"
 authors = ["daniele <git.daniele@gmail.com>"]
 
 [dependencies]
-rocket = "0.4.5"
+rocket = "0.4.10"
 log = "0.4"
 env_logger = "0.8"
 base64 = "0.13"
 serde_json = "1.0"
 serde_derive = "1.0"
 serde = "1.0"
-redis = "0.17"
+redis = "0.18"
 time = "0.1"
 uuid = { version = "0.8.1", features = ["v4"] }
 captcha = { git = "https://github.com/daniel-e/captcha.git" }

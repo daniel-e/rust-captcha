@@ -1,4 +1,4 @@
-VERSION=6.0.9
+VERSION=6.2.6
 
 redis: target/redis-$(VERSION)/src/redis_server
 	target/redis-$(VERSION)/src/redis-server --save ""
