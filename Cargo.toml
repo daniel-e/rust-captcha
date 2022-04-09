@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = ["daniele <git.daniele@gmail.com>"]
 
 [dependencies]
-rocket = "0.4.5"
+rocket = "0.4.10"
 log = "0.4"
 env_logger = "0.8"
 base64 = "0.13"
