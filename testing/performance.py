@@ -5,11 +5,18 @@ import urllib.request
 import sys
 from multiprocessing import Process
 
+# In the root of this repository do:
+# make redis (if you haven't a Redis instance already running)
+# cargo run --release
+
+# In this directory do:
+# ./performance.py
+
 n = 1000
-k = int(sys.argv[1])
+n_processes = 4 if len(sys.argv) == 1 else int(sys.argv[1])
 
 def send_req():
-    req = urllib.request.Request('http://localhost:8080/new/easy/3/100', data=b"")
+    req = urllib.request.Request('http://localhost:8000/new/easy/3/100', data=b"")
     req.add_header("X-Client-ID", "myclient")
     rsp = urllib.request.urlopen(req)
     _data = rsp.read()
@@ -26,6 +33,7 @@ def f():
 
 
 def main():
+    k = n_processes
     procs = [Process(target=f) for _ in range(k)]
     print("starting...")
     t1 = time.time()
